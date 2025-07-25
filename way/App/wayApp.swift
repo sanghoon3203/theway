@@ -6,12 +6,14 @@
 //
 
 import SwiftUI
+import MapboxMaps
 
 @main
 struct wayApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            ContentView()  // 게임 전체를 관리하는 뷰
         }
     }
 }
+
