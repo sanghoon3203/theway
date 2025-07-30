@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6A25C75D2E38ACC800FD7331 /* SocketIO in Frameworks */ = {isa = PBXBuildFile; productRef = 6A25C75C2E38ACC800FD7331 /* SocketIO */; };
 		6A93D5372E2F71AE00435F6A /* MapboxMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 6A93D5362E2F71AE00435F6A /* MapboxMaps */; };
 /* End PBXBuildFile section */
 
@@ -70,6 +71,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6A93D5372E2F71AE00435F6A /* MapboxMaps in Frameworks */,
+				6A25C75D2E38ACC800FD7331 /* SocketIO in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -131,6 +133,7 @@
 			name = way;
 			packageProductDependencies = (
 				6A93D5362E2F71AE00435F6A /* MapboxMaps */,
+				6A25C75C2E38ACC800FD7331 /* SocketIO */,
 			);
 			productName = way;
 			productReference = 6A93D50A2E2F717A00435F6A /* way.app */;
@@ -216,6 +219,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				6A93D5352E2F71AE00435F6A /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */,
+				6A25C75B2E38ACC800FD7331 /* XCRemoteSwiftPackageReference "socket" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6A93D50B2E2F717A00435F6A /* Products */;
@@ -613,6 +617,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		6A25C75B2E38ACC800FD7331 /* XCRemoteSwiftPackageReference "socket" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/socketio/socket.io-client-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 16.0.0;
+			};
+		};
 		6A93D5352E2F71AE00435F6A /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/mapbox/mapbox-maps-ios.git";
@@ -624,6 +636,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		6A25C75C2E38ACC800FD7331 /* SocketIO */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6A25C75B2E38ACC800FD7331 /* XCRemoteSwiftPackageReference "socket" */;
+			productName = SocketIO;
+		};
 		6A93D5362E2F71AE00435F6A /* MapboxMaps */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 6A93D5352E2F71AE00435F6A /* XCRemoteSwiftPackageReference "mapbox-maps-ios" */;
