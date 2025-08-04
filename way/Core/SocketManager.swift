@@ -1,4 +1,4 @@
-// 📁 Core/SocketManager.swift - 수정된 버전
+// 📁 Core/SocketManager.swift - 완전한 복구 버전
 import Foundation
 import SocketIO
 import Combine
@@ -7,6 +7,20 @@ import CoreLocation
 #if canImport(UIKit)
 import UIKit
 #endif
+
+// MARK: - PlayerLocation Model (누락된 모델 추가)
+struct PlayerLocation: Identifiable, Codable {
+    let id: String
+    let name: String
+    let latitude: Double
+    let longitude: Double
+    let level: Int
+    let lastSeen: String
+    
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+}
 
 class SocketManager: ObservableObject {
     static let shared = SocketManager()
@@ -24,7 +38,7 @@ class SocketManager: ObservableObject {
     private var socket: SocketIOClient?
     private var reconnectTimer: Timer?
     private var heartbeatTimer: Timer?
-    private var locationThrottleTimer: Timer? // ✅ 위치 업데이트 스로틀링
+    private var locationThrottleTimer: Timer?
     private var lastPingTime: Date?
     private var connectionRetryCount = 0
     private let maxRetryCount = 5
@@ -217,43 +231,61 @@ extension SocketManager {
         
         // MARK: - Game Events
         socket.on("welcome") { [weak self] data, ack in
-            self?.handleWelcome(data)
+            DispatchQueue.main.async {
+                self?.handleWelcome(data)
+            }
         }
         
         socket.on("playerJoined") { [weak self] data, ack in
-            self?.handlePlayerJoined(data)
+            DispatchQueue.main.async {
+                self?.handlePlayerJoined(data)
+            }
         }
         
         socket.on("playerLeft") { [weak self] data, ack in
-            self?.handlePlayerLeft(data)
+            DispatchQueue.main.async {
+                self?.handlePlayerLeft(data)
+            }
         }
         
         // MARK: - Market Events
         socket.on("priceUpdate") { [weak self] data, ack in
-            self?.handlePriceUpdate(data)
+            DispatchQueue.main.async {
+                self?.handlePriceUpdate(data)
+            }
         }
         
         socket.on("marketAlert") { [weak self] data, ack in
-            self?.handleMarketAlert(data)
+            DispatchQueue.main.async {
+                self?.handleMarketAlert(data)
+            }
         }
         
         // MARK: - Location Events
         socket.on("nearbyMerchants") { [weak self] data, ack in
-            self?.handleNearbyMerchants(data)
+            DispatchQueue.main.async {
+                self?.handleNearbyMerchants(data)
+            }
         }
         
         socket.on("playersInArea") { [weak self] data, ack in
-            self?.handlePlayersInArea(data)
+            DispatchQueue.main.async {
+                self?.handlePlayersInArea(data)
+            }
         }
         
         // MARK: - Trade Events
         socket.on("tradeNotification") { [weak self] data, ack in
-            self?.handleTradeNotification(data)
+            DispatchQueue.main.async {
+                self?.handleTradeNotification(data)
+            }
         }
         
         // MARK: - System Events
         socket.on("systemMessage") { [weak self] data, ack in
-            self?.handleSystemMessage(data)
+            DispatchQueue.main.async {
+                self?.handleSystemMessage(data)
+            }
         }
         
         socket.on("pong") { [weak self] data, ack in
@@ -262,7 +294,9 @@ extension SocketManager {
         
         // ✅ 에러 이벤트 처리
         socket.on("error") { [weak self] data, ack in
-            self?.handleServerError(data)
+            DispatchQueue.main.async {
+                self?.handleServerError(data)
+            }
         }
     }
 }
@@ -332,6 +366,103 @@ extension SocketManager {
         connectionRetryCount = 0
     }
     
+    // ✅ 누락된 이벤트 핸들러들 추가
+    private func handleWelcome(_ data: [Any]) {
+        if let welcomeData = data.first as? [String: Any] {
+            print("👋 서버 환영 메시지: \(welcomeData)")
+            
+            if let playerId = welcomeData["playerId"] as? String {
+                print("플레이어 ID: \(playerId)")
+            }
+        }
+    }
+    
+    private func handlePlayerJoined(_ data: [Any]) {
+        if let playerData = data.first as? [String: Any],
+           let player = parsePlayerLocation(from: playerData) {
+            
+            if !playersInArea.contains(where: { $0.id == player.id }) {
+                playersInArea.append(player)
+            }
+        }
+    }
+    
+    private func handlePlayerLeft(_ data: [Any]) {
+        if let playerData = data.first as? [String: Any],
+           let playerId = playerData["playerId"] as? String {
+            
+            playersInArea.removeAll { $0.id == playerId }
+        }
+    }
+    
+    private func handleMarketAlert(_ data: [Any]) {
+        if let alertData = data.first as? [String: Any],
+           let title = alertData["title"] as? String,
+           let message = alertData["message"] as? String {
+            
+            let event = GameEvent(
+                title: title,
+                description: message,
+                type: .specialEvent,
+                timestamp: Date()
+            )
+            
+            realTimeEvents.append(event)
+            
+            // 최대 10개 이벤트만 유지
+            if realTimeEvents.count > 10 {
+                realTimeEvents.removeFirst()
+            }
+        }
+    }
+    
+    private func handlePlayersInArea(_ data: [Any]) {
+        if let playersData = data.first as? [[String: Any]] {
+            let players = playersData.compactMap { parsePlayerLocation(from: $0) }
+            playersInArea = players
+        }
+    }
+    
+    private func handleTradeNotification(_ data: [Any]) {
+        if let tradeData = data.first as? [String: Any],
+           let playerName = tradeData["playerName"] as? String,
+           let itemName = tradeData["itemName"] as? String,
+           let action = tradeData["action"] as? String {
+            
+            let event = GameEvent(
+                title: "거래 알림",
+                description: "\(playerName)님이 \(itemName)을(를) \(action == "buy" ? "구매" : "판매")했습니다.",
+                type: .priceChange,
+                timestamp: Date()
+            )
+            
+            realTimeEvents.append(event)
+            
+            if realTimeEvents.count > 10 {
+                realTimeEvents.removeFirst()
+            }
+        }
+    }
+    
+    private func handleSystemMessage(_ data: [Any]) {
+        if let messageData = data.first as? [String: Any],
+           let message = messageData["message"] as? String {
+            
+            let event = GameEvent(
+                title: "시스템 메시지",
+                description: message,
+                type: .achievement,
+                timestamp: Date()
+            )
+            
+            realTimeEvents.append(event)
+            
+            if realTimeEvents.count > 10 {
+                realTimeEvents.removeFirst()
+            }
+        }
+    }
+    
     private func handlePriceUpdate(_ data: [Any]) {
         guard let priceData = data.first as? [String: Any] else { return }
         
@@ -346,9 +477,7 @@ extension SocketManager {
             }
         }
         
-        DispatchQueue.main.async {
-            self.priceUpdates = updates
-        }
+        priceUpdates = updates
     }
     
     private func handleNearbyMerchants(_ data: [Any]) {
@@ -358,9 +487,7 @@ extension SocketManager {
             return parseMerchant(from: data)
         }
         
-        DispatchQueue.main.async {
-            self.nearbyMerchants = merchants
-        }
+        nearbyMerchants = merchants
     }
     
     private func scheduleReconnect() {
@@ -434,53 +561,108 @@ extension SocketManager {
         }
         return nil
     }
+    
+    // ✅ 거래 요청 전송 (GameManager에서 사용)
+    func sendTradeRequest(merchantId: String, itemName: String, action: String) {
+        guard isConnected else { return }
+        
+        socket?.emit("tradeRequest", [
+            "merchantId": merchantId,
+            "itemName": itemName,
+            "action": action,
+            "timestamp": Int(Date().timeIntervalSince1970)
+        ])
+    }
 }
 
 // MARK: - Helper Methods
 extension SocketManager {
+    // ✅ 수정된 Merchant 파싱 (올바른 타입 사용)
     private func parseMerchant(from data: [String: Any]) -> Merchant? {
         guard let id = data["id"] as? String,
               let name = data["name"] as? String,
-              let type = data["type"] as? String,
-              let district = data["district"] as? String else {
+              let typeString = data["type"] as? String,
+              let districtString = data["district"] as? String,
+              let licenseValue = data["requiredLicense"] as? Int else {
+            return nil
+        }
+        
+        // ✅ 문자열을 올바른 Enum 타입으로 변환
+        guard let merchantType = Merchant.MerchantType(rawValue: typeString),
+              let district = SeoulDistrict(rawValue: districtString),
+              let license = LicenseLevel(rawValue: licenseValue) else {
             return nil
         }
         
         let location = data["location"] as? [String: Double]
         let inventory = data["inventory"] as? [[String: Any]] ?? []
+        let trustLevel = data["trustLevel"] as? Int ?? 0
+        
+        let coordinate = CLLocationCoordinate2D(
+            latitude: location?["lat"] ?? 0,
+            longitude: location?["lng"] ?? 0
+        )
         
         return Merchant(
-            id: id,
             name: name,
-            type: type,
+            type: merchantType,
             district: district,
-            location: CLLocationCoordinate2D(
-                latitude: location?["lat"] ?? 0,
-                longitude: location?["lng"] ?? 0
-            ),
+            coordinate: coordinate,
+            requiredLicense: license,
             inventory: parseInventory(inventory),
-            requiredLicense: data["requiredLicense"] as? Int ?? 1
+            trustLevel: trustLevel
         )
     }
     
+    // ✅ 수정된 TradeItem 파싱 (옵셔널 반환)
     private func parseInventory(_ inventoryData: [[String: Any]]) -> [TradeItem] {
-        return inventoryData.compactMap { itemData in
+        return inventoryData.compactMap { itemData -> TradeItem? in // ✅ 명시적 반환 타입
             guard let name = itemData["name"] as? String,
                   let category = itemData["category"] as? String,
-                  let basePrice = itemData["basePrice"] as? Int else {
-                return nil
+                  let basePrice = itemData["basePrice"] as? Int,
+                  let gradeString = itemData["grade"] as? String,
+                  let licenseValue = itemData["requiredLicense"] as? Int else {
+                return nil // ✅ 이제 nil 반환 가능
             }
+            
+            // ✅ 문자열을 올바른 Enum 타입으로 변환
+            guard let grade = ItemGrade(rawValue: gradeString),
+                  let license = LicenseLevel(rawValue: licenseValue) else {
+                return nil // ✅ 이제 nil 반환 가능
+            }
+            
             
             return TradeItem(
                 name: name,
                 category: category,
                 basePrice: basePrice,
-                currentPrice: itemData["currentPrice"] as? Int ?? basePrice,
-                grade: itemData["grade"] as? String ?? "common",
-                requiredLicense: itemData["requiredLicense"] as? Int ?? 1,
-                stock: itemData["stock"] as? Int ?? 0
+                grade: grade,
+                requiredLicense: license,
+                currentPrice: itemData["currentPrice"] as? Int ?? basePrice  // ✅ 올바른 순서
             )
         }
+    }
+    
+    // ✅ PlayerLocation 파싱 메서드 추가
+    private func parsePlayerLocation(from data: [String: Any]) -> PlayerLocation? {
+        guard let id = data["id"] as? String,
+              let name = data["name"] as? String,
+              let latitude = data["latitude"] as? Double,
+              let longitude = data["longitude"] as? Double else {
+            return nil
+        }
+        
+        let level = data["level"] as? Int ?? 1
+        let lastSeen = data["lastSeen"] as? String ?? ""
+        
+        return PlayerLocation(
+            id: id,
+            name: name,
+            latitude: latitude,
+            longitude: longitude,
+            level: level,
+            lastSeen: lastSeen
+        )
     }
 }
 

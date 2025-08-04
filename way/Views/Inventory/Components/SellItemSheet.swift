@@ -44,7 +44,8 @@ struct SellItemSheet: View {
                         VStack(spacing: 12) {
                             ForEach(Array(nearbyMerchants), id: \.id) { merchant in
                                 MerchantSellCard(merchant: merchant, item: item) {
-                                    sellToMerchant(merchant)
+                                    Task{
+                                        await sellToMerchant(merchant)}
                                 }
                             }
                         }
@@ -63,8 +64,8 @@ struct SellItemSheet: View {
         }
     }
     
-    private func sellToMerchant(_ merchant: Merchant) {
-        let success = gameManager.sellItem(item, to: merchant, at: merchant.coordinate)
+    private func sellToMerchant(_ merchant: Merchant) async {
+        let success = await gameManager.sellItem(item, to: merchant, at: merchant.coordinate)
         if success {
             presentationMode.wrappedValue.dismiss()
         }
