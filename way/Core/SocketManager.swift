@@ -1,4 +1,4 @@
-// 📁 Core/SocketManager.swift
+// 📁 Core/SocketManager.swift - 수정된 버전
 import Foundation
 import SocketIO
 import Combine
@@ -24,9 +24,15 @@ class SocketManager: ObservableObject {
     private var socket: SocketIOClient?
     private var reconnectTimer: Timer?
     private var heartbeatTimer: Timer?
+    private var locationThrottleTimer: Timer? // ✅ 위치 업데이트 스로틀링
     private var lastPingTime: Date?
     private var connectionRetryCount = 0
     private let maxRetryCount = 5
+    
+    // ✅ 캐싱 및 최적화
+    private var cachedPrices: [String: (price: Int, timestamp: Date)] = [:]
+    private var lastLocationUpdate: Date?
+    private let locationUpdateInterval: TimeInterval = 5.0 // 5초 간격
     
     // MARK: - Configuration
     private let serverURL = "http://localhost:3000"
@@ -46,9 +52,10 @@ class SocketManager: ObservableObject {
     }
     
     deinit {
+        // ✅ 메모리 누수 방지
         disconnect()
-        reconnectTimer?.invalidate()
-        heartbeatTimer?.invalidate()
+        invalidateAllTimers()
+        NotificationCenter.default.removeObserver(self)
     }
 }
 
@@ -59,6 +66,9 @@ extension SocketManager {
             print("❌ Invalid server URL")
             return
         }
+        
+        // ✅ 기존 연결 정리
+        disconnect()
         
         connectionStatus = .connecting
         
@@ -80,8 +90,8 @@ extension SocketManager {
     func disconnect() {
         connectionStatus = .disconnecting
         
-        heartbeatTimer?.invalidate()
-        reconnectTimer?.invalidate()
+        // ✅ 모든 타이머 정리
+        invalidateAllTimers()
         
         socket?.disconnect()
         socket = nil
@@ -91,6 +101,18 @@ extension SocketManager {
         isConnected = false
         
         print("🔌 Socket 연결 해제됨")
+    }
+    
+    // ✅ 타이머 정리 메서드
+    private func invalidateAllTimers() {
+        heartbeatTimer?.invalidate()
+        heartbeatTimer = nil
+        
+        reconnectTimer?.invalidate()
+        reconnectTimer = nil
+        
+        locationThrottleTimer?.invalidate()
+        locationThrottleTimer = nil
     }
     
     func reconnect() {
@@ -105,7 +127,10 @@ extension SocketManager {
         
         disconnect()
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + Double(connectionRetryCount) * 2) {
+        // ✅ 지수 백오프 적용
+        let delay = min(Double(connectionRetryCount * connectionRetryCount), 30.0)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
             if let token = NetworkManager.shared.isAuthenticated ? self.getStoredToken() : nil {
                 self.connect(with: token)
             }
@@ -137,16 +162,28 @@ extension SocketManager {
     }
     
     @objc private func appDidEnterBackground() {
-        // 백그라운드에서는 연결을 유지하되 빈도를 줄임
-        heartbeatTimer?.invalidate()
+        // ✅ 백그라운드에서는 연결을 유지하되 빈도를 줄임
+        invalidateAllTimers()
+        
+        // 백그라운드 태스크 등록
+        if isConnected {
+            startBackgroundHeartbeat()
+        }
     }
     
     @objc private func appWillEnterForeground() {
-        // 포그라운드로 돌아올 때 연결 상태 확인
+        // ✅ 포그라운드로 돌아올 때 연결 상태 확인
         if connectionStatus == .connected {
             startHeartbeat()
         } else if NetworkManager.shared.isAuthenticated {
             reconnect()
+        }
+    }
+    
+    // ✅ 백그라운드용 저빈도 하트비트
+    private func startBackgroundHeartbeat() {
+        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+            self?.sendPing()
         }
     }
     
@@ -222,6 +259,11 @@ extension SocketManager {
         socket.on("pong") { [weak self] data, ack in
             self?.handlePong()
         }
+        
+        // ✅ 에러 이벤트 처리
+        socket.on("error") { [weak self] data, ack in
+            self?.handleServerError(data)
+        }
     }
 }
 
@@ -244,10 +286,10 @@ extension SocketManager {
         isConnected = false
         connectionStatus = .disconnected
         
-        heartbeatTimer?.invalidate()
+        invalidateAllTimers()
         
-        // 자동 재연결 시도
-        if NetworkManager.shared.isAuthenticated {
+        // ✅ 자동 재연결 시도 (인증된 사용자만)
+        if NetworkManager.shared.isAuthenticated && connectionRetryCount < maxRetryCount {
             scheduleReconnect()
         }
     }
@@ -259,6 +301,29 @@ extension SocketManager {
         if let errorData = data.first as? [String: Any],
            let message = errorData["message"] as? String {
             print("Socket 오류 메시지: \(message)")
+            
+            // ✅ 특정 오류에 대한 처리
+            if message.contains("authentication") {
+                // 인증 오류 시 로그아웃 처리
+                DispatchQueue.main.async {
+                    NetworkManager.shared.logout()
+                }
+            }
+        }
+    }
+    
+    private func handleServerError(_ data: [Any]) {
+        if let errorData = data.first as? [String: Any],
+           let message = errorData["message"] as? String {
+            
+            // ✅ 사용자에게 알림
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("ServerError"),
+                    object: nil,
+                    userInfo: ["message": message]
+                )
+            }
         }
     }
     
@@ -267,368 +332,165 @@ extension SocketManager {
         connectionRetryCount = 0
     }
     
-    private func handleWelcome(_ data: [Any]) {
-        if let welcomeData = data.first as? [String: Any] {
-            print("👋 서버 환영 메시지: \(welcomeData)")
-            
-            if let playerId = welcomeData["playerId"] as? String {
-                print("플레이어 ID: \(playerId)")
-            }
-        }
-    }
-    
-    private func handlePlayerJoined(_ data: [Any]) {
-        if let playerData = data.first as? [String: Any],
-           let player = parsePlayerLocation(from: playerData) {
-            
-            DispatchQueue.main.async {
-                if !self.playersInArea.contains(where: { $0.id == player.id }) {
-                    self.playersInArea.append(player)
-                }
-            }
-        }
-    }
-    
-    private func handlePlayerLeft(_ data: [Any]) {
-        if let playerData = data.first as? [String: Any],
-           let playerId = playerData["playerId"] as? String {
-            
-            DispatchQueue.main.async {
-                self.playersInArea.removeAll { $0.id == playerId }
-            }
-        }
-    }
-    
     private func handlePriceUpdate(_ data: [Any]) {
-        if let priceData = data.first as? [String: Any] {
-            var updates: [String: Int] = [:]
-            
-            for (key, value) in priceData {
-                if let price = value as? Int {
-                    updates[key] = price
-                }
-            }
-            
-            DispatchQueue.main.async {
-                self.priceUpdates = updates
-                
-                // 실시간 이벤트로도 추가
-                let event = GameEvent(
-                    type: .priceUpdate,
-                    message: "시장 가격이 업데이트되었습니다",
-                    data: priceData
-                )
-                self.realTimeEvents.append(event)
+        guard let priceData = data.first as? [String: Any] else { return }
+        
+        var updates: [String: Int] = [:]
+        let now = Date()
+        
+        for (key, value) in priceData {
+            if let price = value as? Int {
+                updates[key] = price
+                // ✅ 캐시 업데이트
+                cachedPrices[key] = (price: price, timestamp: now)
             }
         }
-    }
-    
-    private func handleMarketAlert(_ data: [Any]) {
-        if let alertData = data.first as? [String: Any],
-           let message = alertData["message"] as? String,
-           let alertType = alertData["type"] as? String {
-            
-            DispatchQueue.main.async {
-                let event = GameEvent(
-                    type: GameEventType(rawValue: alertType) ?? .marketAlert,
-                    message: message,
-                    data: alertData
-                )
-                self.realTimeEvents.append(event)
-            }
+        
+        DispatchQueue.main.async {
+            self.priceUpdates = updates
         }
     }
     
     private func handleNearbyMerchants(_ data: [Any]) {
-        if let merchantsData = data.first as? [[String: Any]] {
-            let merchants = merchantsData.compactMap { parseMerchant(from: $0) }
-            
-            DispatchQueue.main.async {
-                self.nearbyMerchants = merchants
-            }
-        }
-    }
-    
-    private func handlePlayersInArea(_ data: [Any]) {
-        if let playersData = data.first as? [[String: Any]] {
-            let players = playersData.compactMap { parsePlayerLocation(from: $0) }
-            
-            DispatchQueue.main.async {
-                self.playersInArea = players
-            }
-        }
-    }
-    
-    private func handleTradeNotification(_ data: [Any]) {
-        if let tradeData = data.first as? [String: Any],
-           let message = tradeData["message"] as? String {
-            
-            DispatchQueue.main.async {
-                let event = GameEvent(
-                    type: .tradeNotification,
-                    message: message,
-                    data: tradeData
-                )
-                self.realTimeEvents.append(event)
-            }
-        }
-    }
-    
-    private func handleSystemMessage(_ data: [Any]) {
-        if let messageData = data.first as? [String: Any],
-           let message = messageData["message"] as? String {
-            
-            DispatchQueue.main.async {
-                let event = GameEvent(
-                    type: .systemMessage,
-                    message: message,
-                    data: messageData
-                )
-                self.realTimeEvents.append(event)
-            }
-        }
-    }
-    
-    private func handlePong() {
-        lastPingTime = Date()
-    }
-}
-
-// MARK: - Data Sending Methods
-extension SocketManager {
-    func sendLocation(latitude: Double, longitude: Double) {
-        guard isConnected else { return }
+        guard let merchantsData = data.first as? [[String: Any]] else { return }
         
-        let locationData: [String: Any] = [
-            "latitude": latitude,
-            "longitude": longitude,
-            "timestamp": Date().timeIntervalSince1970
-        ]
-        
-        socket?.emit("updateLocation", locationData)
-    }
-    
-    func joinRoom(_ roomId: String) {
-        guard isConnected else { return }
-        
-        socket?.emit("joinRoom", roomId)
-        print("🏠 방 참가: \(roomId)")
-    }
-    
-    func leaveRoom(_ roomId: String) {
-        guard isConnected else { return }
-        
-        socket?.emit("leaveRoom", roomId)
-        print("🚪 방 떠남: \(roomId)")
-    }
-    
-    func sendTradeRequest(merchantId: String, itemName: String, action: String) {
-        guard isConnected else { return }
-        
-        let tradeData: [String: Any] = [
-            "merchantId": merchantId,
-            "itemName": itemName,
-            "action": action, // "buy" or "sell"
-            "timestamp": Date().timeIntervalSince1970
-        ]
-        
-        socket?.emit("tradeRequest", tradeData)
-    }
-    
-    func sendChatMessage(message: String, roomId: String? = nil) {
-        guard isConnected else { return }
-        
-        let chatData: [String: Any] = [
-            "message": message,
-            "roomId": roomId ?? "global",
-            "timestamp": Date().timeIntervalSince1970
-        ]
-        
-        socket?.emit("chatMessage", chatData)
-    }
-    
-    func requestMarketData(district: String? = nil) {
-        guard isConnected else { return }
-        
-        var requestData: [String: Any] = [
-            "timestamp": Date().timeIntervalSince1970
-        ]
-        
-        if let district = district {
-            requestData["district"] = district
+        let merchants = merchantsData.compactMap { data -> Merchant? in
+            return parseMerchant(from: data)
         }
         
-        socket?.emit("requestMarketData", requestData)
-    }
-    
-    func requestNearbyPlayers(latitude: Double, longitude: Double, radius: Double = 1000) {
-        guard isConnected else { return }
-        
-        let requestData: [String: Any] = [
-            "latitude": latitude,
-            "longitude": longitude,
-            "radius": radius,
-            "timestamp": Date().timeIntervalSince1970
-        ]
-        
-        socket?.emit("requestNearbyPlayers", requestData)
-    }
-}
-
-// MARK: - Heartbeat & Connection Health
-extension SocketManager {
-    private func startHeartbeat() {
-        heartbeatTimer?.invalidate()
-        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
-            self?.sendHeartbeat()
-        }
-    }
-    
-    private func sendHeartbeat() {
-        guard isConnected else { return }
-        
-        socket?.emit("ping", Date().timeIntervalSince1970)
-        
-        // 5초 후에도 pong이 안 오면 연결 문제로 판단
-        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
-            guard let self = self else { return }
-            
-            if let lastPing = self.lastPingTime,
-               Date().timeIntervalSince(lastPing) > 30 {
-                print("⚠️ Heartbeat 응답 없음 - 재연결 시도")
-                self.reconnect()
-            }
+        DispatchQueue.main.async {
+            self.nearbyMerchants = merchants
         }
     }
     
     private func scheduleReconnect() {
-        reconnectTimer?.invalidate()
-        reconnectTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: false) { [weak self] _ in
+        let delay = min(Double(connectionRetryCount * 2), 10.0)
+        
+        reconnectTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
             self?.reconnect()
         }
     }
     
+    private func startHeartbeat() {
+        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 10.0, repeats: true) { [weak self] _ in
+            self?.sendPing()
+        }
+    }
+    
+    private func sendPing() {
+        lastPingTime = Date()
+        socket?.emit("ping")
+    }
+    
+    private func handlePong() {
+        if let pingTime = lastPingTime {
+            let latency = Date().timeIntervalSince(pingTime)
+            print("🏓 Ping: \(Int(latency * 1000))ms")
+        }
+    }
+    
     private func requestInitialData() {
-        // 연결 성공 후 필요한 초기 데이터 요청
-        requestMarketData()
-        
-        // 위치 기반 데이터 요청 (예: 서울 중심부)
-        sendLocation(latitude: 37.5665, longitude: 126.9780)
+        // 초기 데이터 요청
+        socket?.emit("requestInitialData")
     }
 }
 
-// MARK: - Data Parsing Helpers
+// MARK: - Public Methods
+extension SocketManager {
+    // ✅ 스로틀링이 적용된 위치 업데이트
+    func updateLocation(_ location: CLLocationCoordinate2D) {
+        guard isConnected else { return }
+        
+        let now = Date()
+        if let lastUpdate = lastLocationUpdate,
+           now.timeIntervalSince(lastUpdate) < locationUpdateInterval {
+            return // 너무 빈번한 업데이트 방지
+        }
+        
+        lastLocationUpdate = now
+        
+        socket?.emit("updateLocation", [
+            "lat": location.latitude,
+            "lng": location.longitude,
+            "timestamp": Int(now.timeIntervalSince1970)
+        ])
+    }
+    
+    func joinRoom(_ roomId: String) {
+        guard isConnected else { return }
+        socket?.emit("joinRoom", roomId)
+    }
+    
+    func leaveRoom(_ roomId: String) {
+        guard isConnected else { return }
+        socket?.emit("leaveRoom", roomId)
+    }
+    
+    // ✅ 캐시된 가격 조회
+    func getCachedPrice(for item: String) -> Int? {
+        if let cached = cachedPrices[item],
+           Date().timeIntervalSince(cached.timestamp) < 300 { // 5분 캐시
+            return cached.price
+        }
+        return nil
+    }
+}
+
+// MARK: - Helper Methods
 extension SocketManager {
     private func parseMerchant(from data: [String: Any]) -> Merchant? {
         guard let id = data["id"] as? String,
               let name = data["name"] as? String,
-              let typeString = data["type"] as? String,
-              let type = Merchant.MerchantType(rawValue: typeString),
-              let districtString = data["district"] as? String,
-              let district = SeoulDistrict(rawValue: districtString),
-              let licenseValue = data["requiredLicense"] as? Int,
-              let license = LicenseLevel(rawValue: licenseValue),
-              let locationData = data["location"] as? [String: Double],
-              let lat = locationData["lat"],
-              let lng = locationData["lng"] else {
+              let type = data["type"] as? String,
+              let district = data["district"] as? String else {
             return nil
         }
         
-        let coordinate = CLLocationCoordinate2D(latitude: lat, longitude: lng)
-        let trustLevel = data["trustLevel"] as? Int ?? 0
-        
-        // 인벤토리 파싱
-        var inventory: [TradeItem] = []
-        if let inventoryData = data["inventory"] as? [[String: Any]] {
-            inventory = inventoryData.compactMap { parseTradeItem(from: $0) }
-        }
+        let location = data["location"] as? [String: Double]
+        let inventory = data["inventory"] as? [[String: Any]] ?? []
         
         return Merchant(
+            id: id,
             name: name,
             type: type,
             district: district,
-            coordinate: coordinate,
-            requiredLicense: license,
-            inventory: inventory,
-            trustLevel: trustLevel
+            location: CLLocationCoordinate2D(
+                latitude: location?["lat"] ?? 0,
+                longitude: location?["lng"] ?? 0
+            ),
+            inventory: parseInventory(inventory),
+            requiredLicense: data["requiredLicense"] as? Int ?? 1
         )
     }
     
-    private func parseTradeItem(from data: [String: Any]) -> TradeItem? {
-        guard let name = data["name"] as? String,
-              let category = data["category"] as? String,
-              let basePrice = data["basePrice"] as? Int,
-              let currentPrice = data["currentPrice"] as? Int,
-              let gradeString = data["grade"] as? String,
-              let grade = ItemGrade(rawValue: gradeString),
-              let licenseValue = data["requiredLicense"] as? Int,
-              let license = LicenseLevel(rawValue: licenseValue) else {
-            return nil
+    private func parseInventory(_ inventoryData: [[String: Any]]) -> [TradeItem] {
+        return inventoryData.compactMap { itemData in
+            guard let name = itemData["name"] as? String,
+                  let category = itemData["category"] as? String,
+                  let basePrice = itemData["basePrice"] as? Int else {
+                return nil
+            }
+            
+            return TradeItem(
+                name: name,
+                category: category,
+                basePrice: basePrice,
+                currentPrice: itemData["currentPrice"] as? Int ?? basePrice,
+                grade: itemData["grade"] as? String ?? "common",
+                requiredLicense: itemData["requiredLicense"] as? Int ?? 1,
+                stock: itemData["stock"] as? Int ?? 0
+            )
         }
-        
-        return TradeItem(
-            name: name,
-            category: category,
-            basePrice: basePrice,
-            grade: grade,
-            requiredLicense: license,
-            currentPrice: currentPrice
-        )
-    }
-    
-    private func parsePlayerLocation(from data: [String: Any]) -> PlayerLocation? {
-        guard let id = data["id"] as? String,
-              let name = data["name"] as? String,
-              let lat = data["latitude"] as? Double,
-              let lng = data["longitude"] as? Double else {
-            return nil
-        }
-        
-        let level = data["level"] as? Int ?? 1
-        let lastSeen = data["lastSeen"] as? String ?? ""
-        
-        return PlayerLocation(
-            id: id,
-            name: name,
-            coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng),
-            level: level,
-            lastSeen: lastSeen
-        )
     }
 }
 
-// MARK: - Supporting Models
+// MARK: - Connection Status Enum
 enum ConnectionStatus {
     case disconnected
     case connecting
     case connected
+    case reconnecting
     case disconnecting
     case error
     case failed
-}
-
-struct GameEvent: Identifiable {
-    let id = UUID()
-    let type: GameEventType
-    let message: String
-    let data: [String: Any]
-    let timestamp = Date()
-}
-
-enum GameEventType: String, CaseIterable {
-    case priceUpdate = "priceUpdate"
-    case marketAlert = "marketAlert"
-    case tradeNotification = "tradeNotification"
-    case systemMessage = "systemMessage"
-    case playerJoined = "playerJoined"
-    case playerLeft = "playerLeft"
-    case merchantUpdate = "merchantUpdate"
-}
-
-struct PlayerLocation: Identifiable {
-    let id: String
-    let name: String
-    let coordinate: CLLocationCoordinate2D
-    let level: Int
-    let lastSeen: String
 }
