@@ -15,13 +15,13 @@ struct ItemDetailCard: View {
     var body: some View {
         VStack(spacing: 12) {
             HStack {
-                Text(item.grade.rawValue)
+                Text(item.rarity.displayName)
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(item.grade.color)
+                    .background(Color(item.rarity.color))
                     .cornerRadius(8)
                 
                 Spacer()
@@ -31,7 +31,7 @@ struct ItemDetailCard: View {
                 .font(.title2)
                 .fontWeight(.bold)
             
-            Text(item.category)
+            Text(item.category.displayName)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             

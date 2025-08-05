@@ -18,13 +18,13 @@ struct InventoryItemCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 // 아이템 등급 표시
                 HStack {
-                    Text(item.grade.rawValue)
+                    Text(item.rarity.displayName)
                         .font(.caption)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(item.grade.color)
+                        .background(Color(item.rarity.color))
                         .cornerRadius(6)
                     
                     Spacer()
@@ -41,7 +41,7 @@ struct InventoryItemCard: View {
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                     
-                    Text(item.category)
+                    Text(item.category.displayName)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
