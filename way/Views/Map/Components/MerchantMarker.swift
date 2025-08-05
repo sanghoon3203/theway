@@ -1,11 +1,3 @@
-//
-//  MerchantMarker.swift
-//  way
-//
-//  Created by 김상훈 on 7/24/25.
-//
-
-
 // 📁 Views/Map/Components/MerchantMarker.swift
 import SwiftUI
 
@@ -40,19 +32,21 @@ struct MerchantMarker: View {
         }
     }
     
-    private func colorForMerchantType(_ type: Merchant.MerchantType) -> Color {
+    private func colorForMerchantType(_ type: MerchantType) -> Color {
         switch type {
         case .retail: return .green
-        case .wholesale: return .blue
-        case .premium: return .purple
+        case .artisan: return .blue
+        case .collector: return .purple
+        case .mystic: return .orange
         }
     }
     
-    private func iconForMerchantType(_ type: Merchant.MerchantType) -> String {
+    private func iconForMerchantType(_ type: MerchantType) -> String {
         switch type {
         case .retail: return "cart"
-        case .wholesale: return "building.2"
-        case .premium: return "crown"
+        case .artisan: return "hammer"
+        case .collector: return "eye"
+        case .mystic: return "sparkles"
         }
     }
 }

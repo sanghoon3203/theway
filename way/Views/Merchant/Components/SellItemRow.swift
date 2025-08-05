@@ -1,11 +1,3 @@
-//
-//  SellItemRow.swift
-//  way
-//
-//  Created by 김상훈 on 7/24/25.
-//
-
-
 // 📁 Views/Merchant/Components/SellItemRow.swift
 import SwiftUI
 
@@ -17,8 +9,8 @@ struct SellItemRow: View {
     @EnvironmentObject var gameManager: GameManager
     
     private var estimatedPrice: Int {
-        // 간단한 보너스 계산 (실제로는 거리 기반)
-        Int(Double(item.currentPrice) * 1.3)
+        // 상인의 가격 계산 메서드 사용
+        merchant.calculatePrice(for: item, player: gameManager.player, isPlayerSelling: true)
     }
     
     private var profit: Int {
@@ -33,13 +25,14 @@ struct SellItemRow: View {
                         .font(.headline)
                         .fontWeight(.medium)
                     
-                    Text(item.grade.rawValue)
+                    // grade → rarity로 변경
+                    Text(item.rarity.displayName)
                         .font(.caption)
                         .fontWeight(.bold)
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(item.grade.color)
+                        .background(Color(item.rarity.color))
                         .cornerRadius(4)
                 }
                 
@@ -49,7 +42,7 @@ struct SellItemRow: View {
                 
                 Text("예상 수익: +\(profit.formatted())원")
                     .font(.caption)
-                    .foregroundColor(.green)
+                    .foregroundColor(profit > 0 ? .green : .red)
             }
             
             Spacer()

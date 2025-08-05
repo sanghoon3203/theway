@@ -1,12 +1,4 @@
-//
-//  MerchantMarkerSimple.swift
-//  way
-//
-//  Created by 김상훈 on 7/25/25.
-//
-
-
-// 📁 Views/Map/Components/MerchantMarkerSimple.swift - 단순한 마커
+// 📁 Views/Map/Components/MerchantMarkerSimple.swift
 import SwiftUI
 
 struct MerchantMarkerSimple: View {
@@ -40,11 +32,12 @@ struct MerchantMarkerSimple: View {
         }
     }
     
-    private func colorForMerchantType(_ type: Merchant.MerchantType) -> Color {
+    private func colorForMerchantType(_ type: MerchantType) -> Color {
         switch type {
         case .retail: return .green
-        case .wholesale: return .blue  
-        case .premium: return .purple
+        case .artisan: return .blue
+        case .collector: return .purple
+        case .mystic: return .orange
         }
     }
 }

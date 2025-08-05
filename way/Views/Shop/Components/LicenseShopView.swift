@@ -1,11 +1,3 @@
-//
-//  LicenseShopView.swift
-//  way
-//
-//  Created by 김상훈 on 7/25/25.
-//
-
-
 // 📁 Views/Shop/Components/LicenseShopView.swift
 import SwiftUI
 
@@ -33,7 +25,7 @@ struct LicenseShopView: View {
                     .environmentObject(gameManager)
                 
                 // 업그레이드 섹션
-                if gameManager.player.canUpgradeLicense() {
+                if canUpgradeLicense() {
                     UpgradeAvailableCard()
                         .environmentObject(gameManager)
                 } else {
@@ -42,6 +34,33 @@ struct LicenseShopView: View {
                 }
             }
             .padding(.horizontal)
+        }
+    }
+    
+    // 라이센스 업그레이드 가능 여부 체크
+    private func canUpgradeLicense() -> Bool {
+        let player = gameManager.player
+        let currentLevel = player.currentLicense.rawValue
+        
+        // 최대 레벨이면 업그레이드 불가
+        guard currentLevel < 5 else { return false }
+        
+        // 다음 레벨 요구사항 체크
+        let nextLevel = LicenseLevel(rawValue: currentLevel + 1) ?? .master
+        let requirements = getLicenseRequirements(for: nextLevel)
+        
+        return player.money >= requirements.requiredMoney &&
+               player.trustPoints >= requirements.requiredTrust
+    }
+    
+    // 라이센스별 요구사항 반환
+    private func getLicenseRequirements(for license: LicenseLevel) -> (requiredMoney: Int, requiredTrust: Int) {
+        switch license {
+        case .beginner: return (0, 0)
+        case .intermediate: return (100000, 50)
+        case .advanced: return (500000, 200)
+        case .expert: return (2000000, 500)
+        case .master: return (10000000, 1000)
         }
     }
 }

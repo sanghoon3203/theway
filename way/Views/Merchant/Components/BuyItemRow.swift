@@ -20,8 +20,8 @@ struct BuyItemRow: View {
     }
     
     private var hasSpace: Bool {
-        gameManager.player.inventory.count < gameManager.player.maxInventorySize
-    }
+            gameManager.player.hasInventorySpace // 새로운 computed property 사용
+        }
     
     private var canPurchase: Bool {
         isEnabled && canAfford && hasSpace
@@ -35,30 +35,36 @@ struct BuyItemRow: View {
                         .font(.headline)
                         .fontWeight(.medium)
                     
-                    Text(item.grade.rawValue)
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(item.grade.color)
-                        .cornerRadius(4)
-                }
+                    // grade → rarity로 변경
+                        Text(item.rarity.displayName)
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(item.rarity.color))
+                            .cornerRadius(4)
+                                   }
                 
-                Text(item.category)
+                Text(item.category.displayName)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
                 if !canAfford {
-                    Text("자금 부족")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                } else if !hasSpace {
-                    Text("인벤토리 가득참")
-                        .font(.caption)
-                        .foregroundColor(.red)
-                }
-            }
+                                   Text("자금 부족")
+                                       .font(.caption)
+                                       .foregroundColor(.red)
+                               } else if !hasSpace {
+                                   Text("인벤토리 가득참")
+                                       .font(.caption)
+                                       .foregroundColor(.red)
+                               } else if !gameManager.player.canTradeItem(item) {
+                                   Text("라이센스 부족")
+                                       .font(.caption)
+                                       .foregroundColor(.orange)
+                               }
+                           }
+                           
             
             Spacer()
             
