@@ -1,343 +1,617 @@
-// 📁 Models/Player.swift - 확장된 플레이어 모델
+// 📁 Models/Player.swift - 확장된 버전
 import Foundation
 import CoreLocation
 
-struct Player: Codable {
-    var id: String = UUID().uuidString
-    var name: String = "플레이어"
-    var money: Int = 50000
-    var trustPoints: Int = 0
-    var currentLicense: LicenseLevel = .beginner
-    var maxInventorySize: Int = 5
+class Player: ObservableObject, Codable {
+    // MARK: - 기본 정보
+    @Published var id: String
+    @Published var userId: String?
+    @Published var name: String = ""
+    @Published var email: String?
     
-    // 새로운 캐릭터 시스템
-    var level: Int = 1
-    var experience: Int = 0
-    var statPoints: Int = 0
-    var skillPoints: Int = 0
+    // MARK: - 게임 기본 스탯
+    @Published var money: Int = 50000
+    @Published var trustPoints: Int = 0
+    @Published var reputation: Int = 0
+    @Published var currentLicense: LicenseLevel = .beginner
+    @Published var maxInventorySize: Int = 5
     
-    // 캐릭터 스탯
-    var strength: Int = 10      // 힘 (운반 용량 증가)
-    var intelligence: Int = 10  // 지능 (시세 파악 능력)
-    var charisma: Int = 10      // 매력 (거래 가격 우대)
-    var luck: Int = 10          // 운 (희귀 아이템 발견율)
+    // MARK: - 캐릭터 레벨 시스템
+    @Published var level: Int = 1
+    @Published var experience: Int = 0
+    @Published var statPoints: Int = 0
+    @Published var skillPoints: Int = 0
     
-    // 스킬 레벨
-    var tradingSkill: Int = 1      // 거래 스킬
-    var negotiationSkill: Int = 1   // 협상 스킬
-    var appraisalSkill: Int = 1     // 감정 스킬
+    // MARK: - 캐릭터 스탯
+    @Published var strength: Int = 10        // 힘 (무거운 아이템 운반)
+    @Published var intelligence: Int = 10    // 지능 (아이템 감정, 시장 분석)
+    @Published var charisma: Int = 10       // 매력 (거래 가격, 상인 친밀도)
+    @Published var luck: Int = 10           // 행운 (희귀 아이템 발견, 크리티컬)
     
-    // 기존 시스템
-    var inventory: [TradeItem] = []
-    var vehicles: [Vehicle] = []
-    var pets: [Pet] = []
-    var ownedProperties: [Property] = []
+    // MARK: - 거래 기술
+    @Published var tradingSkill: Int = 1     // 거래 기술
+    @Published var negotiationSkill: Int = 1 // 협상 기술
+    @Published var appraisalSkill: Int = 1   // 감정 기술
     
-    // 캐릭터 외형
-    var appearance: CharacterAppearance = CharacterAppearance()
+    // MARK: - 인벤토리 시스템
+    @Published var inventory: [TradeItem] = []
+    @Published var equippedItems: [EquipmentSlot: TradeItem] = [:]
+    @Published var storageItems: [TradeItem] = []
+    @Published var maxStorageSize: Int = 50
     
-    // 업적 및 관계
-    var completedAchievements: [String] = []
-    var merchantRelations: [String: MerchantRelation] = [:]
+    // MARK: - 소유 자산
+    @Published var ownedProperties: [Property] = []
+    @Published var vehicles: [Vehicle] = []
+    @Published var pets: [Pet] = []
     
-    // 계산된 속성들
-    var actualInventorySize: Int {
-        return maxInventorySize + (strength / 5) // 힘 5마다 인벤토리 +1
+    // MARK: - 캐릭터 외형
+    @Published var appearance: CharacterAppearance = CharacterAppearance()
+    @Published var cosmetics: [CharacterCosmetic] = []
+    
+    // MARK: - 위치 정보
+    @Published var currentLocation: CLLocationCoordinate2D?
+    @Published var lastKnownLocation: CLLocationCoordinate2D?
+    @Published var homeLocation: CLLocationCoordinate2D?
+    
+    // MARK: - 관계 시스템
+    @Published var merchantRelationships: [String: MerchantRelationship] = [:]
+    @Published var guildMembership: GuildMembership?
+    
+    // MARK: - 업적 시스템
+    @Published var achievements: [PlayerAchievement] = []
+    @Published var completedAchievements: Set<String> = []
+    
+    // MARK: - 거래 기록
+    @Published var tradeHistory = (try? container.decode([TradeRecord].self, forKey: .tradeHistory)) ?? []
+    @Published var totalTrades: Int = 0
+    @Published var totalProfit: Int = 0
+    @Published var bestDeal: TradeRecord? = nil
+    // MARK: - 시간 정보
+    @Published var createdAt: Date = Date()
+    @Published var lastActive: Date = Date()
+    @Published var totalPlayTime: TimeInterval = 0
+    @Published var dailyPlayTime: TimeInterval = 0
+    
+    // MARK: - 게임 설정
+    @Published var gameSettings: GameSettings = GameSettings()
+    @Published var preferences: PlayerPreferences = PlayerPreferences()
+    
+    // MARK: - 보험 및 서비스
+    @Published var insurancePolicies: [InsurancePolicy] = []
+    @Published var activeContracts: [TradeContract] = []
+    
+    // MARK: - 초기화
+    init(
+        id: String = UUID().uuidString,
+        userId: String? = nil,
+        name: String = "",
+        email: String? = nil
+    ) {
+        self.id = id
+        self.userId = userId
+        self.name = name
+        self.email = email
     }
-    
-    var negotiationBonus: Double {
-        return Double(charisma) * 0.02 + Double(negotiationSkill) * 0.05 // 매력과 협상 스킬 보너스
-    }
-    
-    var luckBonus: Double {
-        return Double(luck) * 0.01 // 운 1당 1% 보너스
-    }
-    
-    var appraisalAccuracy: Double {
-        return min(0.5 + Double(intelligence) * 0.02 + Double(appraisalSkill) * 0.1, 0.95) // 최대 95%
-    }
-    
-    // 레벨업에 필요한 경험치
-    var requiredExpForNextLevel: Int {
-        return calculateRequiredExp(for: level + 1)
-    }
-    
-    // 현재 레벨 진행률 (0.0 - 1.0)
-    var levelProgress: Double {
-        let currentLevelExp = calculateRequiredExp(for: level)
-        let nextLevelExp = calculateRequiredExp(for: level + 1)
-        let progressExp = experience - currentLevelExp
-        let totalExpNeeded = nextLevelExp - currentLevelExp
-        return Double(progressExp) / Double(totalExpNeeded)
-    }
-    
-    // 인벤토리에 공간이 있는지 확인
-    var hasInventorySpace: Bool {
-        return inventory.count < actualInventorySize
-    }
-    
-    private func calculateRequiredExp(for level: Int) -> Int {
-        switch level {
-        case 1: return 0
-        case 2: return 100
-        case 3: return 250
-        case 4: return 450
-        case 5: return 700
-        case 6...10: return 700 + (level - 5) * 400
-        case 11...20: return 2700 + (level - 10) * 500
-        case 21...30: return 7700 + (level - 20) * 750
-        case 31...50: return 15200 + (level - 30) * 1000
-        default: return 35200 + (level - 50) * 1500
-        }
-    }
-    
-    // 레벨업 체크 및 처리
-    mutating func checkLevelUp() -> Bool {
-        if experience >= requiredExpForNextLevel {
-            levelUp()
-            return true
-        }
-        return false
-    }
-    
-    private mutating func levelUp() {
-        level += 1
-        
-        // 레벨별 보상
-        let rewards = getLevelRewards(for: level)
-        statPoints += rewards.statPoints
-        skillPoints += rewards.skillPoints
-        
-        print("🎉 레벨업! 레벨 \(level)이 되었습니다!")
-        print("스탯 포인트 +\(rewards.statPoints), 스킬 포인트 +\(rewards.skillPoints)")
-    }
-    
-    private func getLevelRewards(for level: Int) -> (statPoints: Int, skillPoints: Int) {
-        switch level {
-        case 2...4: return (2, 1)
-        case 5, 10, 15, 20: return (3, 2)
-        case 25, 30: return (4, 3)
-        case 35, 40: return (5, 3)
-        case 45: return (5, 4)
-        case 50: return (6, 5)
-        default: return (2, 1)
-        }
-    }
-    
-    // 스탯 증가 메서드
-    mutating func increaseStat(_ stat: StatType) -> Bool {
-        guard statPoints > 0 else { return false }
-        
-        switch stat {
-        case .strength:
-            strength += 1
-        case .intelligence:
-            intelligence += 1
-        case .charisma:
-            charisma += 1
-        case .luck:
-            luck += 1
-        }
-        
-        statPoints -= 1
-        return true
-    }
-    
-    // 스킬 증가 메서드
-    mutating func increaseSkill(_ skill: SkillType) -> Bool {
-        guard skillPoints > 0 else { return false }
-        
-        switch skill {
-        case .trading:
-            tradingSkill += 1
-        case .negotiation:
-            negotiationSkill += 1
-        case .appraisal:
-            appraisalSkill += 1
-        }
-        
-        skillPoints -= 1
-        return true
-    }
-    
-    // 경험치 획득
-    mutating func gainExperience(_ amount: Int) {
-        experience += amount
-        _ = checkLevelUp()
-    }
-    
-    // MARK: - 추가된 메서드들
-    
-    // 라이센스 업그레이드 가능 여부
-    func canUpgradeLicense() -> Bool {
-        let currentLevel = currentLicense.rawValue
-        guard currentLevel < 5 else { return false }
-        
-        let nextLevel = LicenseLevel(rawValue: currentLevel + 1) ?? .master
-        let requirements = nextLevel.requirements
-        
-        return money >= requirements.requiredMoney &&
-               trustPoints >= requirements.requiredTrust
-    }
-    
-    // 라이센스 업그레이드 실행
-    mutating func upgradeLicense() -> Bool {
-        guard canUpgradeLicense() else { return false }
-        
-        let nextLevel = LicenseLevel(rawValue: currentLicense.rawValue + 1) ?? .master
-        let requirements = nextLevel.requirements
-        
-        money -= requirements.requiredMoney
-        trustPoints -= requirements.requiredTrust
-        currentLicense = nextLevel
-        
-        return true
-    }
-    
-    // 아이템 거래 가능 여부 확인
-    func canTradeItem(_ item: TradeItem) -> Bool {
-        return currentLicense.rawValue >= item.requiredLicense.rawValue &&
-               level >= item.requiredLevel &&
-               (item.requiredStats?.meetsRequirements(player: self) ?? true)
-    }
-    
-    // 특정 금액을 구매할 수 있는지 확인
-    func canAfford(_ amount: Int) -> Bool {
-        return money >= amount
-    }
-    
-    // 아이템 구매 처리
-    mutating func buyItem(_ item: TradeItem, price: Int) -> Bool {
-        guard canAfford(price) && hasInventorySpace else { return false }
-        
-        money -= price
-        inventory.append(item)
-        
-        // 경험치 획득
-        let expGained = max(1, price / 1000)
-        gainExperience(expGained)
-        
-        return true
-    }
-    
-    // 아이템 판매 처리
-    mutating func sellItem(_ item: TradeItem, price: Int) -> Bool {
-        guard let index = inventory.firstIndex(where: { $0.id == item.id }) else { return false }
-        
-        inventory.remove(at: index)
-        money += price
-        trustPoints += 1
-        
-        // 경험치 획득
-        let expGained = max(1, price / 500)
-        gainExperience(expGained)
-        
-        return true
-    }
-    
-    // 상인과의 관계 업데이트
-    mutating func updateMerchantRelation(merchantId: String, tradeAmount: Int, wasSuccessful: Bool) {
-        if merchantRelations[merchantId] == nil {
-            merchantRelations[merchantId] = MerchantRelation(merchantId: merchantId)
-        }
-        
-        merchantRelations[merchantId]?.recordTrade(amount: tradeAmount, wasSuccessful: wasSuccessful)
-    }
-}
-
-// MARK: - 캐릭터 외형 시스템
-struct CharacterAppearance: Codable {
-    var hairStyle: Int = 1      // 1-10
-    var hairColor: Int = 1      // 1-8
-    var faceType: Int = 1       // 1-6
-    var eyeType: Int = 1        // 1-8
-    var skinTone: Int = 1       // 1-5
-    var outfitId: Int = 1       // 현재 착용 의상
-    var accessoryId: Int? = nil  // 악세서리 (옵션)
-    
-    // 보유 의상/악세서리
-    var ownedOutfits: [Int] = [1]  // 기본 의상은 1번
-    var ownedAccessories: [Int] = []
-}
-
-// MARK: - 상인과의 관계 시스템
-struct MerchantRelation: Codable {
-    let merchantId: String
-    var friendshipPoints: Int = 0
-    var reputation: Int = 0
-    var totalTrades: Int = 0
-    var totalSpent: Int = 0
-    var relationshipStatus: RelationshipStatus = .stranger
-    var lastInteraction: Date? = nil
-    var notes: String = ""
-    
-    enum RelationshipStatus: String, CaseIterable, Codable {
-        case stranger = "stranger"      // 낯선 사람
-        case acquaintance = "acquaintance"  // 아는 사람
-        case friend = "friend"          // 친구
-        case trusted = "trusted"        // 신뢰하는 사이
-        case partner = "partner"        // 파트너
+    // MARK: - 보험
+    enum InsuranceType: String, CaseIterable, Codable {
+        case theft = "theft"
+        case damage = "damage"
+        case price = "price"
+        case travel = "travel"
         
         var displayName: String {
             switch self {
-            case .stranger: return "낯선 사람"
-            case .acquaintance: return "아는 사람"
-            case .friend: return "친구"
-            case .trusted: return "신뢰하는 사이"
-            case .partner: return "비즈니스 파트너"
+            case .theft: return "도난 보험"
+            case .damage: return "손상 보험"
+            case .price: return "가격 보험"
+            case .travel: return "여행 보험"
+            }
+        }
+    }
+    // MARK: - Codable 구현
+    enum CodingKeys: String, CodingKey {
+        case id, userId, name, email, money, trustPoints, reputation
+        case currentLicense, maxInventorySize, level, experience
+        case statPoints, skillPoints, strength, intelligence, charisma, luck
+        case tradingSkill, negotiationSkill, appraisalSkill
+        case inventory, equippedItems, storageItems, maxStorageSize
+        case ownedProperties, vehicles, pets, appearance, cosmetics
+        case merchantRelationships, guildMembership, achievements
+        case completedAchievements, tradeHistory, totalTrades, totalProfit
+        case createdAt, lastActive, totalPlayTime, dailyPlayTime
+        case gameSettings, preferences, insurancePolicies, activeContracts
+        case currentLocationLat, currentLocationLng
+        case lastKnownLocationLat, lastKnownLocationLng
+        case homeLocationLat, homeLocationLng
+    }
+    
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        userId = try container.decodeIfPresent(String.self, forKey: .userId)
+        name = try container.decode(String.self, forKey: .name)
+        email = try container.decodeIfPresent(String.self, forKey: .email)
+        money = try container.decode(Int.self, forKey: .money)
+        trustPoints = try container.decode(Int.self, forKey: .trustPoints)
+        reputation = try container.decode(Int.self, forKey: .reputation)
+        currentLicense = try container.decode(LicenseLevel.self, forKey: .currentLicense)
+        maxInventorySize = try container.decode(Int.self, forKey: .maxInventorySize)
+        level = try container.decode(Int.self, forKey: .level)
+        experience = try container.decode(Int.self, forKey: .experience)
+        statPoints = try container.decode(Int.self, forKey: .statPoints)
+        skillPoints = try container.decode(Int.self, forKey: .skillPoints)
+        strength = try container.decode(Int.self, forKey: .strength)
+        intelligence = try container.decode(Int.self, forKey: .intelligence)
+        charisma = try container.decode(Int.self, forKey: .charisma)
+        luck = try container.decode(Int.self, forKey: .luck)
+        tradingSkill = try container.decode(Int.self, forKey: .tradingSkill)
+        negotiationSkill = try container.decode(Int.self, forKey: .negotiationSkill)
+        appraisalSkill = try container.decode(Int.self, forKey: .appraisalSkill)
+        inventory = try container.decode([TradeItem].self, forKey: .inventory)
+        equippedItems = try container.decode([EquipmentSlot: TradeItem].self, forKey: .equippedItems)
+        storageItems = try container.decode([TradeItem].self, forKey: .storageItems)
+        maxStorageSize = try container.decode(Int.self, forKey: .maxStorageSize)
+        ownedProperties = try container.decode([Property].self, forKey: .ownedProperties)
+        vehicles = try container.decode([Vehicle].self, forKey: .vehicles)
+        pets = try container.decode([Pet].self, forKey: .pets)
+        appearance = try container.decode(CharacterAppearance.self, forKey: .appearance)
+        cosmetics = try container.decode([CharacterCosmetic].self, forKey: .cosmetics)
+        merchantRelationships = try container.decode([String: MerchantRelationship].self, forKey: .merchantRelationships)
+        guildMembership = try container.decodeIfPresent(GuildMembership.self, forKey: .guildMembership)
+        achievements = try container.decode([PlayerAchievement].self, forKey: .achievements)
+        completedAchievements = try container.decode(Set<String>.self, forKey: .completedAchievements)
+        tradeHistory = try container.decode([TradeRecord].self, forKey: .tradeHistory)
+        totalTrades = try container.decode(Int.self, forKey: .totalTrades)
+        totalProfit = try container.decode(Int.self, forKey: .totalProfit)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        lastActive = try container.decode(Date.self, forKey: .lastActive)
+        totalPlayTime = try container.decode(TimeInterval.self, forKey: .totalPlayTime)
+        dailyPlayTime = try container.decode(TimeInterval.self, forKey: .dailyPlayTime)
+        gameSettings = try container.decode(GameSettings.self, forKey: .gameSettings)
+        preferences = try container.decode(PlayerPreferences.self, forKey: .preferences)
+        insurancePolicies = try container.decode([InsurancePolicy].self, forKey: .insurancePolicies)
+        activeContracts = try container.decode([TradeContract].self, forKey: .activeContracts)
+        
+        // 위치 정보 복원
+        if let lat = try container.decodeIfPresent(Double.self, forKey: .currentLocationLat),
+           let lng = try container.decodeIfPresent(Double.self, forKey: .currentLocationLng) {
+            currentLocation = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        }
+        
+        if let lat = try container.decodeIfPresent(Double.self, forKey: .lastKnownLocationLat),
+           let lng = try container.decodeIfPresent(Double.self, forKey: .lastKnownLocationLng) {
+            lastKnownLocation = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        }
+        
+        if let lat = try container.decodeIfPresent(Double.self, forKey: .homeLocationLat),
+           let lng = try container.decodeIfPresent(Double.self, forKey: .homeLocationLng) {
+            homeLocation = CLLocationCoordinate2D(latitude: lat, longitude: lng)
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(id, forKey: .id)
+        try container.encodeIfPresent(userId, forKey: .userId)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(email, forKey: .email)
+        try container.encode(money, forKey: .money)
+        try container.encode(trustPoints, forKey: .trustPoints)
+        try container.encode(reputation, forKey: .reputation)
+        try container.encode(currentLicense, forKey: .currentLicense)
+        try container.encode(maxInventorySize, forKey: .maxInventorySize)
+        try container.encode(level, forKey: .level)
+        try container.encode(experience, forKey: .experience)
+        try container.encode(statPoints, forKey: .statPoints)
+        try container.encode(skillPoints, forKey: .skillPoints)
+        try container.encode(strength, forKey: .strength)
+        try container.encode(intelligence, forKey: .intelligence)
+        try container.encode(charisma, forKey: .charisma)
+        try container.encode(luck, forKey: .luck)
+        try container.encode(tradingSkill, forKey: .tradingSkill)
+        try container.encode(negotiationSkill, forKey: .negotiationSkill)
+        try container.encode(appraisalSkill, forKey: .appraisalSkill)
+        try container.encode(inventory, forKey: .inventory)
+        try container.encode(equippedItems, forKey: .equippedItems)
+        try container.encode(storageItems, forKey: .storageItems)
+        try container.encode(maxStorageSize, forKey: .maxStorageSize)
+        try container.encode(ownedProperties, forKey: .ownedProperties)
+        try container.encode(vehicles, forKey: .vehicles)
+        try container.encode(pets, forKey: .pets)
+        try container.encode(appearance, forKey: .appearance)
+        try container.encode(cosmetics, forKey: .cosmetics)
+        try container.encode(merchantRelationships, forKey: .merchantRelationships)
+        try container.encodeIfPresent(guildMembership, forKey: .guildMembership)
+        try container.encode(achievements, forKey: .achievements)
+        try container.encode(completedAchievements, forKey: .completedAchievements)
+        try container.encode(tradeHistory, forKey: .tradeHistory)
+        try container.encode(totalTrades, forKey: .totalTrades)
+        try container.encode(totalProfit, forKey: .totalProfit)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(lastActive, forKey: .lastActive)
+        try container.encode(totalPlayTime, forKey: .totalPlayTime)
+        try container.encode(dailyPlayTime, forKey: .dailyPlayTime)
+        try container.encode(gameSettings, forKey: .gameSettings)
+        try container.encode(preferences, forKey: .preferences)
+        try container.encode(insurancePolicies, forKey: .insurancePolicies)
+        try container.encode(activeContracts, forKey: .activeContracts)
+        
+        // 위치 정보 저장
+        try container.encodeIfPresent(currentLocation?.latitude, forKey: .currentLocationLat)
+        try container.encodeIfPresent(currentLocation?.longitude, forKey: .currentLocationLng)
+        try container.encodeIfPresent(lastKnownLocation?.latitude, forKey: .lastKnownLocationLat)
+        try container.encodeIfPresent(lastKnownLocation?.longitude, forKey: .lastKnownLocationLng)
+        try container.encodeIfPresent(homeLocation?.latitude, forKey: .homeLocationLat)
+        try container.encodeIfPresent(homeLocation?.longitude, forKey: .homeLocationLng)
+    }
+    
+    // MARK: - 서버 응답용 초기화
+    convenience init(from serverPlayer: ServerPlayerResponse) {
+        self.init(
+            id: serverPlayer.id,
+            userId: serverPlayer.userId,
+            name: serverPlayer.name,
+            email: serverPlayer.email
+        )
+        
+        self.money = serverPlayer.money
+        self.trustPoints = serverPlayer.trustPoints
+        self.reputation = serverPlayer.reputation
+        self.currentLicense = LicenseLevel(rawValue: serverPlayer.currentLicense) ?? .beginner
+        self.maxInventorySize = serverPlayer.maxInventorySize
+        self.level = serverPlayer.level
+        self.experience = serverPlayer.experience
+        self.statPoints = serverPlayer.statPoints
+        self.skillPoints = serverPlayer.skillPoints
+        self.strength = serverPlayer.strength
+        self.intelligence = serverPlayer.intelligence
+        self.charisma = serverPlayer.charisma
+        self.luck = serverPlayer.luck
+        self.tradingSkill = serverPlayer.tradingSkill
+        self.negotiationSkill = serverPlayer.negotiationSkill
+        self.appraisalSkill = serverPlayer.appraisalSkill
+        self.inventory = serverPlayer.inventory.map { TradeItem(from: $0) }
+        self.equippedItems = serverPlayer.equippedItems.reduce(into: [:]) { result, pair in
+            if let slot = EquipmentSlot(rawValue: pair.key) {
+                result[slot] = TradeItem(from: pair.value)
+            }
+        }
+        self.storageItems = serverPlayer.storageItems.map { TradeItem(from: $0) }
+        self.maxStorageSize = serverPlayer.maxStorageSize
+        // 위치 정보 설정
+        if let location = serverPlayer.lastLocation {
+            self.currentLocation = CLLocationCoordinate2D(latitude: location.lat, longitude: location.lng)
+            self.lastKnownLocation = self.currentLocation
+        }
+        self.createdAt = Date(timeIntervalSince1970: serverPlayer.createdAt)
+        self.lastActive = Date(timeIntervalSince1970: serverPlayer.lastActive)
+    }
+    
+    // MARK: - 레벨 시스템
+    func canUpgradeLicense() -> Bool {
+        let nextLevel = LicenseLevel(rawValue: currentLicense.rawValue + 1)
+        guard let next = nextLevel else { return false }
+        
+        return money >= next.requiredMoney && trustPoints >= next.requiredTrust
+    }
+    
+    func upgradeLicense() -> Bool {
+        guard canUpgradeLicense() else { return false }
+        
+        let nextLevel = LicenseLevel(rawValue: currentLicense.rawValue + 1)!
+        money -= nextLevel.requiredMoney
+        currentLicense = nextLevel
+        maxInventorySize += 2
+        
+        return true
+    }
+    
+    func addExperience(_ amount: Int) {
+        experience += amount
+        checkLevelUp()
+    }
+    
+    private func checkLevelUp() {
+        let requiredExp = calculateRequiredExperience(for: level + 1)
+        
+        while experience >= requiredExp {
+            levelUp()
+        }
+    }
+    
+    private func levelUp() {
+        level += 1
+        let requiredExp = calculateRequiredExperience(for: level)
+        experience -= requiredExp
+        
+        // 레벨업 보상
+        statPoints += 2
+        skillPoints += 1
+        money += level * 1000
+        
+        // 특정 레벨에서 추가 보상
+        switch level {
+        case 5: maxInventorySize += 5
+        case 10: maxStorageSize += 25
+        case 15: maxInventorySize += 5
+        case 20: maxStorageSize += 25
+        default: break
+        }
+    }
+    
+    private func calculateRequiredExperience(for level: Int) -> Int {
+        return level * 100 + (level - 1) * 50
+    }
+    
+    // MARK: - 스탯 관리
+    func canIncreaseStat(_ stat: StatType) -> Bool {
+        return statPoints > 0 && getStatValue(stat) < 100
+    }
+    
+    func increaseStat(_ stat: StatType) -> Bool {
+        guard canIncreaseStat(stat) else { return false }
+        
+        statPoints -= 1
+        
+        switch stat {
+        case .strength: strength += 1
+        case .intelligence: intelligence += 1
+        case .charisma: charisma += 1
+        case .luck: luck += 1
+        }
+        
+        return true
+    }
+    
+    func getStatValue(_ stat: StatType) -> Int {
+        switch stat {
+        case .strength: return strength
+        case .intelligence: return intelligence
+        case .charisma: return charisma
+        case .luck: return luck
+        }
+    }
+    
+    func getTotalStats() -> ItemStats {
+        var totalStats = ItemStats(
+            strength: strength,
+            intelligence: intelligence,
+            charisma: charisma,
+            luck: luck,
+            tradingSkill: tradingSkill,
+            negotiationSkill: negotiationSkill,
+            appraisalSkill: appraisalSkill
+        )
+        
+        // 장착 아이템에서 스탯 추가
+        for (_, item) in equippedItems {
+            totalStats = totalStats.adding(item.getTotalStats())
+        }
+        
+        return totalStats
+    }
+    
+    // MARK: - 기술 관리
+    func canIncreaseSkill(_ skill: SkillType) -> Bool {
+        return skillPoints > 0 && getSkillValue(skill) < 100
+    }
+    
+    func increaseSkill(_ skill: SkillType) -> Bool {
+        guard canIncreaseSkill(skill) else { return false }
+        
+        skillPoints -= 1
+        
+        switch skill {
+        case .trading: tradingSkill += 1
+        case .negotiation: negotiationSkill += 1
+        case .appraisal: appraisalSkill += 1
+        }
+        
+        return true
+    }
+    
+    func getSkillValue(_ skill: SkillType) -> Int {
+        switch skill {
+        case .trading: return tradingSkill
+        case .negotiation: return negotiationSkill
+        case .appraisal: return appraisalSkill
+        }
+    }
+    
+    // MARK: - 인벤토리 관리
+    func canAddItem(_ item: TradeItem) -> Bool {
+        if item.isStackable {
+            // 스택 가능한 아이템은 기존 아이템과 합칠 수 있는지 확인
+            if let existingItem = inventory.first(where: { $0.itemId == item.itemId }) {
+                return existingItem.quantity < item.maxStack
             }
         }
         
-        var color: String {
-            switch self {
-            case .stranger: return "gray"
-            case .acquaintance: return "blue"
-            case .friend: return "green"
-            case .trusted: return "purple"
-            case .partner: return "gold"
+        return inventory.count < maxInventorySize
+    }
+    
+    func addItem(_ item: TradeItem) -> Bool {
+        guard canAddItem(item) else { return false }
+        
+        if item.isStackable,
+           let index = inventory.firstIndex(where: { $0.itemId == item.itemId && $0.quantity < $0.maxStack }) {
+            // 기존 스택에 추가
+            let availableSpace = inventory[index].maxStack - inventory[index].quantity
+            let addAmount = min(item.quantity, availableSpace)
+            inventory[index].quantity += addAmount
+            
+            // 남은 아이템이 있으면 새 스택 생성
+            if item.quantity > addAmount {
+                var newItem = item
+                newItem.quantity = item.quantity - addAmount
+                inventory.append(newItem)
+            }
+        } else {
+            // 새 아이템 추가
+            inventory.append(item)
+        }
+        
+        return true
+    }
+    
+    func removeItem(withId itemId: UUID, quantity: Int = 1) -> Bool {
+        guard let index = inventory.firstIndex(where: { $0.id == itemId }) else {
+            return false
+        }
+        
+        if inventory[index].quantity > quantity {
+            inventory[index].quantity -= quantity
+        } else {
+            inventory.remove(at: index)
+        }
+        
+        return true
+    }
+    
+    func equipItem(_ item: TradeItem) -> Bool {
+        guard let slot = item.equipmentSlot else { return false }
+        
+        // 기존 장착 아이템 해제
+        if let equippedItem = equippedItems[slot] {
+            unequipItem(from: slot)
+        }
+        
+        // 새 아이템 장착
+        equippedItems[slot] = item
+        
+        // 인벤토리에서 제거
+        removeItem(withId: item.id)
+        
+        return true
+    }
+    
+    func unequipItem(from slot: EquipmentSlot) -> Bool {
+        guard let item = equippedItems[slot] else { return false }
+        
+        // 인벤토리 공간 확인
+        guard canAddItem(item) else { return false }
+        
+        // 아이템을 인벤토리로 이동
+        addItem(item)
+        equippedItems.removeValue(forKey: slot)
+        
+        return true
+    }
+    
+    // MARK: - 상인 관계 관리
+    func getRelationship(with merchantId: String) -> MerchantRelationship? {
+        return merchantRelationships[merchantId]
+    }
+    
+    func updateRelationship(with merchantId: String, friendshipChange: Int, trustChange: Int) {
+        if var relationship = merchantRelationships[merchantId] {
+            relationship.friendshipPoints += friendshipChange
+            relationship.trustLevel += trustChange
+            relationship.lastInteraction = Date()
+            merchantRelationships[merchantId] = relationship
+        } else {
+            merchantRelationships[merchantId] = MerchantRelationship(
+                merchantId: merchantId,
+                friendshipPoints: max(0, friendshipChange),
+                trustLevel: max(0, trustChange),
+                totalTrades: 0,
+                totalSpent: 0,
+                lastInteraction: Date()
+            )
+        }
+    }
+    
+    // MARK: - 업적 관리
+    func checkAchievements() {
+        // 업적 달성 조건 체크 (간단한 예시)
+        checkTradeCountAchievements()
+        checkMoneyAchievements()
+        checkLevelAchievements()
+    }
+    
+    private func checkTradeCountAchievements() {
+        let milestones = [1, 10, 50, 100, 500, 1000]
+        
+        for milestone in milestones {
+            let achievementId = "trades_\(milestone)"
+            
+            if totalTrades >= milestone && !completedAchievements.contains(achievementId) {
+                completeAchievement(achievementId)
             }
         }
     }
     
-    // 관계 레벨 계산
-    var friendshipLevel: Int {
-        return min(friendshipPoints / 100, 10) // 100포인트당 1레벨, 최대 10레벨
+    private func checkMoneyAchievements() {
+        let milestones = [100000, 500000, 1000000, 5000000, 10000000]
+        
+        for milestone in milestones {
+            let achievementId = "money_\(milestone)"
+            
+            if money >= milestone && !completedAchievements.contains(achievementId) {
+                completeAchievement(achievementId)
+            }
+        }
     }
     
-    // 관계 상태 업데이트
-    mutating func updateRelationshipStatus() {
-        switch friendshipPoints {
-        case 0...99:
-            relationshipStatus = .stranger
-        case 100...299:
-            relationshipStatus = .acquaintance
-        case 300...699:
-            relationshipStatus = .friend
-        case 700...1499:
-            relationshipStatus = .trusted
-        case 1500...:
-            relationshipStatus = .partner
+    private func checkLevelAchievements() {
+        let milestones = [5, 10, 20, 30, 50]
+        
+        for milestone in milestones {
+            let achievementId = "level_\(milestone)"
+            
+            if level >= milestone && !completedAchievements.contains(achievementId) {
+                completeAchievement(achievementId)
+            }
+        }
+    }
+    
+    private func completeAchievement(_ achievementId: String) {
+        completedAchievements.insert(achievementId)
+        
+        // 업적 보상 지급 (예시)
+        switch achievementId {
+        case "trades_1":
+            money += 5000
+            addExperience(50)
+        case "trades_10":
+            money += 10000
+            addExperience(100)
+        case "money_100000":
+            maxInventorySize += 2
         default:
-            relationshipStatus = .stranger
+            addExperience(25)
         }
     }
     
-    // 거래 후 관계 업데이트
-    mutating func recordTrade(amount: Int, wasSuccessful: Bool) {
-        totalTrades += 1
-        totalSpent += amount
-        lastInteraction = Date()
+    // MARK: - 위치 관리
+    func updateLocation(_ location: CLLocationCoordinate2D) {
+        lastKnownLocation = currentLocation
+        currentLocation = location
+        lastActive = Date()
+    }
+    
+    func getDistanceToHome() -> Double? {
+        guard let home = homeLocation, let current = currentLocation else { return nil }
         
-        if wasSuccessful {
-            friendshipPoints += max(1, amount / 1000) // 거래액에 비례한 우정 포인트
-            reputation += 1
-        }
+        let homeLocation = CLLocation(latitude: home.latitude, longitude: home.longitude)
+        let currentLocationCL = CLLocation(latitude: current.latitude, longitude: current.longitude)
         
-        updateRelationshipStatus()
+        return homeLocation.distance(from: currentLocationCL) / 1000 // km 단위
+    }
+    
+    // MARK: - 보험 관리
+    func hasInsurance(for type: InsuranceType) -> Bool {
+        return insurancePolicies.contains { $0.type.rawValue == type.rawValue && $0.isActive }
+    }
+    
+    func addInsurancePolicy(_ policy: InsurancePolicy) {
+        insurancePolicies.append(policy)
     }
 }
 
-// MARK: - 열거형들
+// MARK: - 지원 구조체들
 enum StatType: String, CaseIterable {
     case strength = "strength"
     case intelligence = "intelligence"
@@ -349,25 +623,16 @@ enum StatType: String, CaseIterable {
         case .strength: return "힘"
         case .intelligence: return "지능"
         case .charisma: return "매력"
-        case .luck: return "운"
+        case .luck: return "행운"
         }
     }
     
     var description: String {
         switch self {
-        case .strength: return "운반 용량과 체력을 증가시킵니다"
-        case .intelligence: return "시세 파악과 학습 능력을 향상시킵니다"
-        case .charisma: return "거래 성공률과 가격 우대를 받습니다"
-        case .luck: return "희귀 아이템 발견과 무작위 이벤트에 영향을 줍니다"
-        }
-    }
-    
-    var iconName: String {
-        switch self {
-        case .strength: return "dumbbell.fill"
-        case .intelligence: return "brain.head.profile"
-        case .charisma: return "heart.fill"
-        case .luck: return "star.fill"
+        case .strength: return "무거운 아이템을 운반하고 물리적 작업에 도움"
+        case .intelligence: return "아이템 감정과 시장 분석 능력 향상"
+        case .charisma: return "상인과의 거래 가격 협상에 유리"
+        case .luck: return "희귀 아이템 발견과 크리티컬 확률 증가"
         }
     }
 }
@@ -379,38 +644,232 @@ enum SkillType: String, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .trading: return "거래"
-        case .negotiation: return "협상"
-        case .appraisal: return "감정"
+        case .trading: return "거래 기술"
+        case .negotiation: return "협상 기술"
+        case .appraisal: return "감정 기술"
         }
     }
     
     var description: String {
         switch self {
-        case .trading: return "거래에서 더 많은 경험치와 수익을 얻습니다"
-        case .negotiation: return "가격 협상 성공률과 할인폭을 증가시킵니다"
-        case .appraisal: return "아이템의 진짜 가치를 더 정확히 파악합니다"
-        }
-    }
-    
-    var iconName: String {
-        switch self {
-        case .trading: return "arrow.left.arrow.right"
-        case .negotiation: return "bubble.left.and.bubble.right"
-        case .appraisal: return "magnifyingglass"
+        case .trading: return "전반적인 거래 능력과 수익률 향상"
+        case .negotiation: return "상인과의 가격 협상 성공률 증가"
+        case .appraisal: return "아이템의 정확한 가치 평가 능력"
         }
     }
 }
 
-// MARK: - LicenseLevel Extension
-extension LicenseLevel {
-    var requirements: (requiredMoney: Int, requiredTrust: Int) {
-        switch self {
-        case .beginner: return (0, 0)
-        case .intermediate: return (100000, 50)
-        case .advanced: return (500000, 200)
-        case .expert: return (2000000, 500)
-        case .master: return (10000000, 1000)
+struct CharacterAppearance: Codable {
+    var hairStyle: Int = 1
+    var hairColor: Int = 1
+    var faceType: Int = 1
+    var eyeType: Int = 1
+    var skinTone: Int = 1
+    var outfitId: Int = 1
+    var accessoryId: Int?
+}
+
+struct CharacterCosmetic: Identifiable, Codable {
+    let id = UUID()
+    let cosmeticType: CosmeticType
+    let cosmeticId: Int
+    let name: String
+    let rarity: ItemRarity
+    var isEquipped: Bool = false
+    let acquiredAt: Date
+    
+    enum CosmeticType: String, CaseIterable, Codable {
+        case hair = "hair"
+        case face = "face"
+        case outfit = "outfit"
+        case accessory = "accessory"
+        case weapon = "weapon"
+        case pet = "pet"
+    }
+}
+
+struct MerchantRelationship: Codable {
+    let merchantId: String
+    var friendshipPoints: Int
+    var trustLevel: Int
+    var totalTrades: Int
+    var totalSpent: Int
+    var lastInteraction: Date
+    var notes: String?
+    
+    var relationshipStatus: RelationshipStatus {
+        if friendshipPoints >= 100 {
+            return .bestFriend
+        } else if friendshipPoints >= 50 {
+            return .friend
+        } else if friendshipPoints >= 20 {
+            return .acquaintance
+        } else if totalTrades >= 5 {
+            return .regular
+        } else {
+            return .stranger
         }
     }
+}
+
+struct GuildMembership: Codable {
+    let guildId: String
+    let guildName: String
+    var rank: GuildRank
+    var contributionPoints: Int
+    var joinedAt: Date
+    var lastActive: Date
+    
+    enum GuildRank: String, CaseIterable, Codable {
+        case member = "member"
+        case officer = "officer"
+        case leader = "leader"
+        
+        var displayName: String {
+            switch self {
+            case .member: return "조합원"
+            case .officer: return "간부"
+            case .leader: return "조합장"
+            }
+        }
+    }
+}
+
+struct PlayerAchievement: Identifiable, Codable {
+    let id = UUID()
+    let achievementId: String
+    var progress: Int
+    var isCompleted: Bool
+    var completedAt: Date?
+    var claimed: Bool
+}
+
+    struct GameSettings: Codable {
+    var soundEnabled: Bool = true
+    var musicEnabled: Bool = true
+    var notificationsEnabled: Bool = true
+    var autoSave: Bool = true
+    var graphicsQuality: GraphicsQuality = .medium
+    var language: String = "ko"
+    
+    enum GraphicsQuality: String, CaseIterable, Codable {
+        case low = "low"
+        case medium = "medium"
+        case high = "high"
+        
+        var displayName: String {
+            switch self {
+            case .low: return "낮음"
+            case .medium: return "보통"
+            case .high: return "높음"
+            }
+        }
+    }
+}
+
+struct PlayerPreferences: Codable {
+    var preferredCategories: [String] = []
+    var blacklistedMerchants: [String] = []
+    var favoriteLocations: [String] = []
+    var tradingStyle: TradingStyle = .balanced
+    
+    enum TradingStyle: String, CaseIterable, Codable {
+        case conservative = "conservative"
+        case balanced = "balanced"
+        case aggressive = "aggressive"
+        
+        var displayName: String {
+            switch self {
+            case .conservative: return "안전한 거래"
+            case .balanced: return "균형 잡힌 거래"
+            case .aggressive: return "공격적 거래"
+            }
+        }
+    }
+}
+
+struct InsurancePolicy: Identifiable, Codable {
+    let id = UUID()
+    let type: InsuranceType
+    let coverageAmount: Int
+    let premiumRate: Double
+    var isActive: Bool
+    let startDate: Date
+    let endDate: Date
+    
+    enum InsuranceType: String, CaseIterable, Codable {
+        case theft = "theft"
+        case damage = "damage"
+        case price = "price"
+        case travel = "travel"
+        
+        var displayName: String {
+            switch self {
+            case .theft: return "도난 보험"
+            case .damage: return "손상 보험"
+            case .price: return "가격 보험"
+            case .travel: return "여행 보험"
+            }
+        }
+    }
+}
+
+struct TradeContract: Identifiable, Codable {
+    let id = UUID()
+    let title: String
+    let description: String
+    let requiredItems: [String]
+    let rewardGold: Int
+    let rewardItems: [String]
+    let deadline: Date
+    var progress: ContractProgress
+    
+    enum ContractProgress: String, CaseIterable, Codable {
+        case available = "available"
+        case accepted = "accepted"
+        case inProgress = "inProgress"
+        case completed = "completed"
+        case failed = "failed"
+        
+        var displayName: String {
+            switch self {
+            case .available: return "수락 가능"
+            case .accepted: return "수락됨"
+            case .inProgress: return "진행 중"
+            case .completed: return "완료"
+            case .failed: return "실패"
+            }
+        }
+    }
+}
+
+// MARK: - 서버 응답 모델
+struct ServerPlayerResponse: Codable {
+    let id: String
+    let userId: String?
+    let name: String
+    let email: String?
+    let money: Int
+    let trustPoints: Int
+    let reputation: Int
+    let currentLicense: Int
+    let maxInventorySize: Int
+    let level: Int
+    let experience: Int
+    let statPoints: Int
+    let skillPoints: Int
+    let strength: Int
+    let intelligence: Int
+    let charisma: Int
+    let luck: Int
+    let tradingSkill: Int
+    let negotiationSkill: Int
+    let appraisalSkill: Int
+    let inventory: [ServerItemResponse]
+    let equippedItems: [String: ServerItemResponse]
+    let storageItems: [ServerItemResponse]
+    let maxStorageSize: Int
+    let lastLocation: LocationData?
+    let createdAt: TimeInterval
+    let lastActive: TimeInterval
 }

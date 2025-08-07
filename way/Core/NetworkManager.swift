@@ -621,15 +621,6 @@ struct TradeHistoryData: Codable {
     let pagination: PaginationInfo
 }
 
-struct TradeRecord: Codable {
-    let id: String
-    let itemName: String
-    let itemCategory: String
-    let price: Int
-    let type: String
-    let timestamp: String
-    let location: LocationData
-}
 
 struct PaginationInfo: Codable {
     let total: Int
