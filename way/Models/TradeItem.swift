@@ -3,8 +3,7 @@ import Foundation
 import SwiftUI
 // MARK: - 확장된 TradeItem
 struct TradeItem: Identifiable, Codable, Equatable {
-    let id = UUID()
-    
+    let id = String
     // 기본 아이템 정보
     let itemId: String  // 서버의 item_master ID
     let name: String
@@ -98,6 +97,7 @@ struct TradeItem: Identifiable, Codable, Equatable {
         loreText: String? = nil,
         acquiredAt: Date = Date()
     ) {
+        self.id = UUID().uuidString
         self.itemId = itemId
         self.name = name
         self.category = category

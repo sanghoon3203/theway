@@ -670,13 +670,24 @@ struct CharacterAppearance: Codable {
 }
 
 struct CharacterCosmetic: Identifiable, Codable {
-    let id = UUID()
+    let id: String
     let cosmeticType: CosmeticType
     let cosmeticId: Int
     let name: String
     let rarity: ItemRarity
     var isEquipped: Bool = false
     let acquiredAt: Date
+    
+    // 초기화 메서드 추가
+    init(cosmeticType: CosmeticType, cosmeticId: Int, name: String, rarity: ItemRarity, isEquipped: Bool = false, acquiredAt: Date = Date()) {
+        self.id = UUID().uuidString
+        self.cosmeticType = cosmeticType
+        self.cosmeticId = cosmeticId
+        self.name = name
+        self.rarity = rarity
+        self.isEquipped = isEquipped
+        self.acquiredAt = acquiredAt
+    }
     
     enum CosmeticType: String, CaseIterable, Codable {
         case hair = "hair"
@@ -736,15 +747,24 @@ struct GuildMembership: Codable {
 }
 
 struct PlayerAchievement: Identifiable, Codable {
-    let id = UUID()
+    let id: String
     let achievementId: String
     var progress: Int
     var isCompleted: Bool
     var completedAt: Date?
     var claimed: Bool
+    
+    // 초기화 메서드 추가
+    init(achievementId: String, progress: Int = 0, isCompleted: Bool = false, completedAt: Date? = nil, claimed: Bool = false) {
+        self.id = UUID().uuidString
+        self.achievementId = achievementId
+        self.progress = progress
+        self.isCompleted = isCompleted
+        self.completedAt = completedAt
+        self.claimed = claimed
+    }
 }
-
-    struct GameSettings: Codable {
+struct GameSettings: Codable {
     var soundEnabled: Bool = true
     var musicEnabled: Bool = true
     var notificationsEnabled: Bool = true
@@ -789,13 +809,24 @@ struct PlayerPreferences: Codable {
 }
 
 struct InsurancePolicy: Identifiable, Codable {
-    let id = UUID()
+    let id: String
     let type: InsuranceType
     let coverageAmount: Int
     let premiumRate: Double
     var isActive: Bool
     let startDate: Date
     let endDate: Date
+    
+    // 초기화 메서드 추가
+    init(type: InsuranceType, coverageAmount: Int, premiumRate: Double, isActive: Bool = true, startDate: Date = Date(), endDate: Date) {
+        self.id = UUID().uuidString
+        self.type = type
+        self.coverageAmount = coverageAmount
+        self.premiumRate = premiumRate
+        self.isActive = isActive
+        self.startDate = startDate
+        self.endDate = endDate
+    }
     
     enum InsuranceType: String, CaseIterable, Codable {
         case theft = "theft"
@@ -815,7 +846,7 @@ struct InsurancePolicy: Identifiable, Codable {
 }
 
 struct TradeContract: Identifiable, Codable {
-    let id = UUID()
+    let id: String
     let title: String
     let description: String
     let requiredItems: [String]
@@ -823,6 +854,18 @@ struct TradeContract: Identifiable, Codable {
     let rewardItems: [String]
     let deadline: Date
     var progress: ContractProgress
+    
+    // 초기화 메서드 추가
+    init(title: String, description: String, requiredItems: [String], rewardGold: Int, rewardItems: [String], deadline: Date, progress: ContractProgress = .available) {
+        self.id = UUID().uuidString
+        self.title = title
+        self.description = description
+        self.requiredItems = requiredItems
+        self.rewardGold = rewardGold
+        self.rewardItems = rewardItems
+        self.deadline = deadline
+        self.progress = progress
+    }
     
     enum ContractProgress: String, CaseIterable, Codable {
         case available = "available"
