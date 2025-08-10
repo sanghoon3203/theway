@@ -134,8 +134,7 @@ struct Merchant: Identifiable, Codable {
         self.trustLevel = serverMerchant.trustLevel
         self.totalTrades = serverMerchant.totalTrades
         self.totalSpent = serverMerchant.totalSpent
-        self.lastInteraction = serverMerchant.lastInteraction != nil ?
-            Date(timeIntervalSince1970: serverMerchant.lastInteraction!) : nil
+        self.lastInteraction = serverMerchant.lastInteraction.map { Date(timeIntervalSince1970: $0) }
         self.relationshipStatus = RelationshipStatus(rawValue: serverMerchant.relationshipStatus) ?? .stranger
         self.appearanceId = serverMerchant.appearanceId
         self.portraitId = serverMerchant.portraitId
@@ -475,12 +474,10 @@ struct MerchantDialogue: Identifiable, Codable {
     
     init(from serverDialogue: ServerDialogueResponse) {
         self.dialogueType = DialogueSituation(rawValue: serverDialogue.dialogueType) ?? .greeting
-        self.conditionType = serverDialogue.conditionType != nil ?
-            DialogueCondition(rawValue: serverDialogue.conditionType!) : nil
+        self.conditionType = serverDialogue.conditionType.flatMap { DialogueCondition(rawValue: $0) }
         self.conditionValue = serverDialogue.conditionValue
         self.dialogueText = serverDialogue.dialogueText
-        self.moodRequired = serverDialogue.moodRequired != nil ?
-            MerchantMood(rawValue: serverDialogue.moodRequired!) : nil
+        self.moodRequired = serverDialogue.moodRequired.flatMap { MerchantMood(rawValue: $0) }
         self.priority = serverDialogue.priority
         self.isActive = serverDialogue.isActive
     }

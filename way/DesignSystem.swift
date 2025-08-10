@@ -173,3 +173,267 @@ extension View {
         self.modifier(ParchmentCardStyle())
     }
 }
+
+// MARK: - JRPG 스타일 확장
+
+// JRPG 색상 팔레트 확장
+extension Color {
+    // 캐릭터 스탯 색상
+    static let healthRed = Color(red: 0.85, green: 0.23, blue: 0.23)
+    static let manaBlue = Color(red: 0.23, green: 0.47, blue: 0.85)
+    static let expGreen = Color(red: 0.23, green: 0.70, blue: 0.44)
+    static let goldYellow = Color(red: 0.95, green: 0.77, blue: 0.06)
+    
+    // 대화창 색상
+    static let dialogueBackground = Color(red: 0.13, green: 0.08, blue: 0.05) // 어두운 갈색
+    static let dialogueBorder = Color(red: 0.70, green: 0.52, blue: 0.20) // 금테두리
+    static let dialogueText = Color(red: 0.95, green: 0.92, blue: 0.85) // 밝은 텍스트
+    
+    // 메뉴 색상
+    static let menuBackground = Color(red: 0.08, green: 0.12, blue: 0.20)
+    static let menuBorder = Color(red: 0.40, green: 0.50, blue: 0.70)
+    static let menuHighlight = Color(red: 0.60, green: 0.75, blue: 0.95)
+}
+
+// JRPG 스타일 폰트 확장
+extension Font {
+    static let dialogueText = Font.system(size: 18, weight: .medium, design: .default)
+    static let characterName = Font.system(size: 20, weight: .bold, design: .serif)
+    static let statText = Font.system(size: 16, weight: .semibold, design: .monospaced)
+    static let menuText = Font.system(size: 16, weight: .medium, design: .default)
+    static let questTitle = Font.system(size: 22, weight: .bold, design: .serif)
+}
+
+// MARK: - 대화창 스타일
+struct DialogueBoxStyle: ViewModifier {
+    let characterName: String?
+    
+    func body(content: Content) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // 캐릭터 이름 탭
+            if let name = characterName {
+                HStack {
+                    Text(name)
+                        .font(.characterName)
+                        .foregroundColor(.dialogueText)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.dialogueBackground.opacity(0.9))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.dialogueBorder, lineWidth: 2)
+                                )
+                        )
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .offset(y: 10)
+                .zIndex(1)
+            }
+            
+            // 메인 대화창
+            content
+                .font(.dialogueText)
+                .foregroundColor(.dialogueText)
+                .padding(20)
+                .background(
+                    RoundedRectangle(cornerRadius: 15)
+                        .fill(Color.dialogueBackground.opacity(0.95))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 15)
+                                .stroke(Color.dialogueBorder, lineWidth: 3)
+                        )
+                        .shadow(color: .black.opacity(0.5), radius: 10, x: 0, y: 5)
+                )
+        }
+    }
+}
+
+extension View {
+    func dialogueBox(characterName: String? = nil) -> some View {
+        self.modifier(DialogueBoxStyle(characterName: characterName))
+    }
+}
+
+// MARK: - 스탯 바 스타일
+struct StatBarStyle: ViewModifier {
+    let current: Double
+    let maximum: Double
+    let color: Color
+    let backgroundColor: Color
+    
+    init(current: Double, maximum: Double, color: Color, backgroundColor: Color = Color.gray.opacity(0.3)) {
+        self.current = current
+        self.maximum = maximum
+        self.color = color
+        self.backgroundColor = backgroundColor
+    }
+    
+    func body(content: Content) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            content
+                .font(.statText)
+                .foregroundColor(.dialogueText)
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // 배경 바
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(backgroundColor)
+                        .frame(height: 12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.black.opacity(0.3), lineWidth: 1)
+                        )
+                    
+                    // 진행률 바
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(
+                            LinearGradient(
+                                colors: [color.opacity(0.8), color],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(
+                            width: geometry.size.width * min(current / maximum, 1.0),
+                            height: 12
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.white.opacity(0.5), lineWidth: 1)
+                        )
+                        .animation(.easeInOut(duration: 0.5), value: current)
+                }
+            }
+            .frame(height: 12)
+        }
+    }
+}
+
+extension View {
+    func statBar(current: Double, maximum: Double, color: Color) -> some View {
+        self.modifier(StatBarStyle(current: current, maximum: maximum, color: color))
+    }
+}
+
+// MARK: - JRPG 메뉴 버튼 스타일
+struct JRPGMenuButtonStyle: ButtonStyle {
+    let isSelected: Bool
+    
+    init(isSelected: Bool = false) {
+        self.isSelected = isSelected
+    }
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.menuText)
+            .foregroundColor(isSelected ? Color.treasureGold : Color.dialogueText)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(
+                        isSelected ? 
+                        Color.menuHighlight.opacity(0.2) : 
+                        Color.menuBackground.opacity(0.7)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(
+                                isSelected ? Color.treasureGold : Color.menuBorder,
+                                lineWidth: isSelected ? 2 : 1
+                            )
+                    )
+            )
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+// MARK: - 선택지 버튼 스타일
+struct DialogueOptionButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack {
+            Image(systemName: "chevron.right")
+                .foregroundColor(.treasureGold)
+                .font(.system(size: 14, weight: .bold))
+            
+            configuration.label
+                .font(.menuText)
+                .foregroundColor(.dialogueText)
+            
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.dialogueBackground.opacity(0.5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(
+                            configuration.isPressed ? Color.treasureGold : Color.dialogueBorder.opacity(0.5),
+                            lineWidth: configuration.isPressed ? 2 : 1
+                        )
+                )
+        )
+        .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+        .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+// MARK: - 캐릭터 포트레이트 스타일
+struct CharacterPortraitStyle: ViewModifier {
+    let size: CGFloat
+    let borderColor: Color
+    
+    init(size: CGFloat = 80, borderColor: Color = .dialogueBorder) {
+        self.size = size
+        self.borderColor = borderColor
+    }
+    
+    func body(content: Content) -> some View {
+        content
+            .frame(width: size, height: size)
+            .clipShape(Circle())
+            .overlay(
+                Circle()
+                    .stroke(borderColor, lineWidth: 3)
+            )
+            .shadow(color: .black.opacity(0.3), radius: 5, x: 0, y: 2)
+    }
+}
+
+extension View {
+    func characterPortrait(size: CGFloat = 80, borderColor: Color = .dialogueBorder) -> some View {
+        self.modifier(CharacterPortraitStyle(size: size, borderColor: borderColor))
+    }
+}
+
+// MARK: - 아이템 툴팁 스타일
+struct ItemTooltipStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.compassSmall)
+            .foregroundColor(.dialogueText)
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.dialogueBackground.opacity(0.95))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.dialogueBorder, lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.4), radius: 5, x: 0, y: 2)
+            )
+    }
+}
+
+extension View {
+    func itemTooltip() -> some View {
+        self.modifier(ItemTooltipStyle())
+    }
+}

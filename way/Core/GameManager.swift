@@ -7,6 +7,7 @@ import Combine
 class GameManager: ObservableObject {
     // MARK: - Published Properties
     @Published var player = Player()
+    @Published var skillEffectManager: SkillEffectManager? = nil
     @Published var merchants: [Merchant] = []
     @Published var availableItems: [TradeItem] = []
     @Published var priceBoard: [String: (district: SeoulDistrict, price: Int)] = [:]
@@ -33,6 +34,9 @@ class GameManager: ObservableObject {
         setupInitialData()
         setupNetworkBindings()
         checkAuthenticationStatus()
+        
+        // 스킬 효과 매니저 초기화
+        skillEffectManager = SkillEffectManager(player: player)
     }
     
     deinit {

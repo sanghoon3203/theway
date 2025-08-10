@@ -44,6 +44,10 @@ class Player: ObservableObject, Codable {
     @Published var vehicles: [Vehicle] = []
     @Published var pets: [Pet] = []
     
+    // MARK: - 스킬 시스템
+    @Published var learnedSkills: Set<String> = []
+    @Published var activeSkillEffects: [SkillEffect] = []
+    
     // MARK: - 캐릭터 외형
     @Published var appearance: CharacterAppearance = CharacterAppearance()
     @Published var cosmetics: [CharacterCosmetic] = []
@@ -115,6 +119,7 @@ class Player: ObservableObject, Codable {
         case statPoints, skillPoints, strength, intelligence, charisma, luck
         case tradingSkill, negotiationSkill, appraisalSkill
         case inventory, equippedItems, storageItems, maxStorageSize
+        case learnedSkills, activeSkillEffects
         case ownedProperties, vehicles, pets, appearance, cosmetics
         case merchantRelationships, guildMembership, achievements
         case completedAchievements, tradeHistory, totalTrades, totalProfit
@@ -300,7 +305,7 @@ class Player: ObservableObject, Codable {
     func upgradeLicense() -> Bool {
         guard canUpgradeLicense() else { return false }
         
-        let nextLevel = LicenseLevel(rawValue: currentLicense.rawValue + 1)!
+        guard let nextLevel = LicenseLevel(rawValue: currentLicense.rawValue + 1) else { return false }
         money -= nextLevel.requiredMoney
         currentLicense = nextLevel
         maxInventorySize += 2

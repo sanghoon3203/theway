@@ -44,21 +44,20 @@ struct MainTabView: View {
                 }
                 .tag(2)
             
-            // 4. 상점
+            // 4. 캐릭터 (기존 프로필 대체)
+            CharacterView(gameManager: gameManager)
+                .tabItem {
+                    Image(systemName: NavigationIcons.person)
+                    Text("캐릭터")
+                }
+                .tag(3)
+            
+            // 5. 상점
             ShopView()
                 .environmentObject(gameManager)
                 .tabItem {
                     Image(systemName: "storefront")
                     Text("상점")
-                }
-                .tag(3)
-            
-            // 5. 프로필
-            ProfileView()
-                .environmentObject(gameManager)
-                .tabItem {
-                    Image(systemName: "person.circle")
-                    Text("프로필")
                 }
                 .tag(4)
         }

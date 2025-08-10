@@ -3,7 +3,7 @@ import Foundation
 import SwiftUI
 // MARK: - 확장된 TradeItem
 struct TradeItem: Identifiable, Codable, Equatable {
-    let id = String
+    let id: String
     // 기본 아이템 정보
     let itemId: String  // 서버의 item_master ID
     let name: String
@@ -130,6 +130,7 @@ struct TradeItem: Identifiable, Codable, Equatable {
     
     // MARK: - 서버 응답용 초기화
     init(from serverItem: ServerItemResponse) {
+        self.id = UUID().uuidString
         self.itemId = serverItem.id
         self.name = serverItem.name
         self.category = serverItem.category
@@ -169,7 +170,7 @@ struct TradeItem: Identifiable, Codable, Equatable {
         self.isLocked = serverItem.isLocked
         self.isFavorite = serverItem.isFavorite
         self.acquiredAt = Date(timeIntervalSince1970: serverItem.acquiredAt)
-        self.lastUsed = serverItem.lastUsed != nil ? Date(timeIntervalSince1970: serverItem.lastUsed!) : nil
+        self.lastUsed = serverItem.lastUsed.map { Date(timeIntervalSince1970: $0) }
     }
     
     // MARK: - 메서드들
@@ -301,7 +302,7 @@ struct EnhancementStats: Codable, Equatable {
 }
 
 struct SocketGem: Identifiable, Codable, Equatable {
-    let id = UUID()
+    let id: String = UUID().uuidString
     let name: String
     let type: GemType
     let stats: ItemStats
@@ -317,7 +318,7 @@ struct SocketGem: Identifiable, Codable, Equatable {
 }
 
 struct Enchantment: Identifiable, Codable, Equatable {
-    let id = UUID()
+    let id: String = UUID().uuidString
     let name: String
     let type: EnchantmentType
     let stats: ItemStats
@@ -334,7 +335,7 @@ struct Enchantment: Identifiable, Codable, Equatable {
 }
 
 struct MagicalProperty: Identifiable, Codable, Equatable {
-    let id = UUID()
+    let id: String = UUID().uuidString
     let name: String
     let type: MagicType
     let stats: ItemStats
@@ -351,7 +352,7 @@ struct MagicalProperty: Identifiable, Codable, Equatable {
 }
 
 struct SpecialEffect: Identifiable, Codable, Equatable {
-    let id = UUID()
+    let id: String = UUID().uuidString
     let name: String
     let description: String
     let effectType: EffectType
