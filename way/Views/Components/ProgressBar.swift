@@ -12,7 +12,7 @@ struct ProgressBar: View {
         total: Int,
         height: CGFloat = 8,
         backgroundColor: Color = Color.black.opacity(0.3),
-        foregroundColor: Color = DesignSystem.primaryColor
+        foregroundColor: Color = .expGreen
     ) {
         self.current = current
         self.total = total

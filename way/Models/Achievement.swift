@@ -1,5 +1,6 @@
 // 📁 Models/Achievement.swift - 업적 모델
 import Foundation
+import SwiftUI
 
 struct Achievement: Identifiable, Codable {
     let id: String
@@ -210,7 +211,19 @@ struct AchievementClaimResponse: Codable {
 
 struct AchievementClaimData: Codable {
     let message: String
-    let rewards: [String: Any]
+    let rewards: RewardData
+    
+    struct RewardData: Codable {
+        let gold: Int?
+        let experience: Int?
+        let cosmetic_id: Int?
+        let title: String?
+        let skill_points: Int?
+        
+        enum CodingKeys: String, CodingKey {
+            case gold, experience, cosmetic_id, title, skill_points
+        }
+    }
 }
 
 // MARK: - Sample Data

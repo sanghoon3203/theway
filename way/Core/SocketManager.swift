@@ -49,7 +49,7 @@ class SocketManager: ObservableObject {
     private let locationUpdateInterval: TimeInterval = 5.0 // 5초 간격
     
     // MARK: - Configuration
-    private let serverURL = "http://localhost:3000"
+    private let serverURL = NetworkConfiguration.socketURL
     private let socketConfig: SocketIOClientConfiguration = [
         .log(false), // 프로덕션에서는 false
         .compress,
@@ -613,26 +613,28 @@ extension SocketManager {
                 district: district,
                 coordinate: coordinate,
                 requiredLicense: license,
-                appearanceId: 1, // 기본값
-                portraitId: 1, // 기본값
+                inventory: parseMerchantInventory(inventory), // TradeItem 배열
                 priceModifier: 1.0, // 기본값
                 negotiationDifficulty: 3, // 기본값
                 preferredItems: [], // 기본값
                 dislikedItems: [], // 기본값
                 reputationRequirement: 0, // 기본값
                 friendshipLevel: 0, // 기본값
-                inventory: parseMerchantInventory(inventory), // ✅ 수정: MerchantItem 반환
                 trustLevel: trustLevel,
+                totalTrades: 0, // 기본값
+                totalSpent: 0, // 기본값
+                appearanceId: 1, // 기본값
+                portraitId: 1, // 기본값
                 isActive: true, // 기본값
-                currentMood: .neutral, // 기본값
-                lastRestocked: Date(), // 기본값
+                mood: .neutral, // 기본값
                 specialAbilities: [], // 기본값
+                services: [], // 기본값
                 isQuestGiver: false // 기본값
             )
         }
-    // 2. ✅ 새로운 함수: MerchantItem을 파싱하는 함수
-    private func parseMerchantInventory(_ inventoryData: [[String: Any]]) -> [MerchantItem] {
-        return inventoryData.compactMap { itemData -> MerchantItem? in
+    // 2. ✅ 새로운 함수: TradeItem을 파싱하는 함수
+    private func parseMerchantInventory(_ inventoryData: [[String: Any]]) -> [TradeItem] {
+        return inventoryData.compactMap { itemData -> TradeItem? in
             guard let itemId = itemData["item_id"] as? String ?? itemData["itemId"] as? String,
                   let name = itemData["name"] as? String,
                   let categoryString = itemData["category"] as? String,
@@ -640,26 +642,23 @@ extension SocketManager {
                 return nil
             }
             
-            // 카테고리 파싱
-            let category = ItemCategory(rawValue: categoryString) ?? .modern
+            // 카테고리는 문자열로 직접 사용
+            let category = categoryString
             
             // 희귀도 파싱
-            let rarityInt = itemData["rarity"] as? Int ?? 1
-            let rarity = ItemRarity(rawValue: rarityInt) ?? .common
+            let gradeString = itemData["grade"] as? String ?? "common"
+            let grade = ItemGrade(rawValue: gradeString) ?? .common
             
             let stock = itemData["stock"] as? Int ?? 1
             
-            return MerchantItem(
-                id: UUID().uuidString,
+            return TradeItem(
                 itemId: itemId,
                 name: name,
                 category: category,
+                grade: grade,
+                requiredLicense: .beginner,
                 basePrice: price,
-                currentPrice: price,
-                rarity: rarity,
-                stock: stock,
-                maxStock: stock * 2,
-                restockAmount: max(1, stock / 2) // ✅ 추가: 재입고 수량 (재고의 절반, 최소 1개)
+                currentPrice: price
             )
         }
     }

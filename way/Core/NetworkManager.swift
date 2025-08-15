@@ -25,23 +25,42 @@ class NetworkManager: ObservableObject {
     private let session: URLSession
     private var cancellables = Set<AnyCancellable>()
     
-    // ✅ 요청 캐시 및 중복 방지
-    private var activeRequests: [String: Task<Any, Error>] = [:]
-    private var requestCache: [String: (data: Data, timestamp: Date)] = [:]
-    private let cacheTimeout: TimeInterval = 300 // 5분 캐시
+    // ✅ 요청 캐시 및 중복 방지 (스레드 안전성 추가)
+    private let requestQueue = DispatchQueue(label: "NetworkManager.requests", attributes: .concurrent)
+    private var _activeRequests: [String: Task<Any, Error>] = [:]
+    private var _requestCache: [String: (data: Data, timestamp: Date)] = [:]
+    private let cacheTimeout: TimeInterval = NetworkConfiguration.cacheTimeout
+    
+    private var activeRequests: [String: Task<Any, Error>] {
+        get {
+            return requestQueue.sync { _activeRequests }
+        }
+        set {
+            requestQueue.async(flags: .barrier) { self._activeRequests = newValue }
+        }
+    }
+    
+    private var requestCache: [String: (data: Data, timestamp: Date)] {
+        get {
+            return requestQueue.sync { _requestCache }
+        }
+        set {
+            requestQueue.async(flags: .barrier) { self._requestCache = newValue }
+        }
+    }
     
     // ✅ 재시도 설정
-    private let maxRetryCount = 3
-    private let retryDelay: TimeInterval = 1.0
+    private let maxRetryCount = NetworkConfiguration.maxRetryCount
+    private let retryDelay: TimeInterval = NetworkConfiguration.retryDelay
     
     // MARK: - Configuration
-    private let baseURL = "http://localhost:3000/api"
+    private let baseURL = NetworkConfiguration.baseURL
     
     private init() {
         // ✅ URLSession 설정 최적화
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 15.0
-        config.timeoutIntervalForResource = 30.0
+        config.timeoutIntervalForRequest = NetworkConfiguration.requestTimeout
+        config.timeoutIntervalForResource = NetworkConfiguration.resourceTimeout
         config.requestCachePolicy = .useProtocolCachePolicy
         config.urlCache = URLCache(memoryCapacity: 10 * 1024 * 1024, diskCapacity: 50 * 1024 * 1024)
         
@@ -57,8 +76,10 @@ class NetworkManager: ObservableObject {
     }
     
     deinit {
-        // ✅ 진행 중인 요청 취소
-        activeRequests.values.forEach { $0.cancel() }
+        // ✅ 진행 중인 요청 취소 (스레드 안전)
+        requestQueue.sync {
+            _activeRequests.values.forEach { $0.cancel() }
+        }
     }
 }
 
@@ -72,21 +93,27 @@ extension NetworkManager {
     
     private func cleanupCache() {
         let now = Date()
-        requestCache = requestCache.filter { _, value in
-            now.timeIntervalSince(value.timestamp) < cacheTimeout
+        requestQueue.async(flags: .barrier) {
+            self._requestCache = self._requestCache.filter { _, value in
+                now.timeIntervalSince(value.timestamp) < self.cacheTimeout
+            }
         }
     }
     
     private func getCachedResponse(for key: String) -> Data? {
-        if let cached = requestCache[key],
-           Date().timeIntervalSince(cached.timestamp) < cacheTimeout {
-            return cached.data
+        return requestQueue.sync {
+            if let cached = _requestCache[key],
+               Date().timeIntervalSince(cached.timestamp) < cacheTimeout {
+                return cached.data
+            }
+            return nil
         }
-        return nil
     }
     
     private func setCachedResponse(_ data: Data, for key: String) {
-        requestCache[key] = (data: data, timestamp: Date())
+        requestQueue.async(flags: .barrier) {
+            self._requestCache[key] = (data: data, timestamp: Date())
+        }
     }
 }
 
@@ -103,10 +130,14 @@ extension NetworkManager {
         retryCount: Int = 0
     ) async throws -> T {
         
-        // ✅ 중복 요청 방지
+        // ✅ 중복 요청 방지 (스레드 안전)
         let requestKey = "\(method.rawValue)-\(endpoint)-\(body?.description ?? "")"
         
-        if let activeTask = activeRequests[requestKey] {
+        let existingTask: Task<Any, Error>? = requestQueue.sync {
+            return _activeRequests[requestKey]
+        }
+        
+        if let activeTask = existingTask {
             return try await activeTask.value as! T
         }
         
@@ -118,7 +149,9 @@ extension NetworkManager {
                 return response
             } catch {
                 // 캐시된 데이터가 잘못된 경우 캐시 삭제
-                requestCache.removeValue(forKey: requestKey)
+                requestQueue.async(flags: .barrier) {
+                    self._requestCache.removeValue(forKey: requestKey)
+                }
             }
         }
         
@@ -135,10 +168,14 @@ extension NetworkManager {
             )
         }
         
-        activeRequests[requestKey] = task
+        requestQueue.async(flags: .barrier) {
+            self._activeRequests[requestKey] = task
+        }
         
         defer {
-            activeRequests.removeValue(forKey: requestKey)
+            requestQueue.async(flags: .barrier) {
+                self._activeRequests.removeValue(forKey: requestKey)
+            }
         }
         
         return try await task.value as! T
@@ -312,10 +349,12 @@ extension NetworkManager {
         // ✅ Socket 연결 해제
         SocketManager.shared.disconnect()
         
-        // ✅ 캐시 정리
-        requestCache.removeAll()
-        activeRequests.values.forEach { $0.cancel() }
-        activeRequests.removeAll()
+        // ✅ 캐시 정리 (스레드 안전)
+        requestQueue.async(flags: .barrier) {
+            self._requestCache.removeAll()
+            self._activeRequests.values.forEach { $0.cancel() }
+            self._activeRequests.removeAll()
+        }
         
         print("🔓 로그아웃 완료")
     }
@@ -598,6 +637,7 @@ struct TradeResult: Codable {
     let newMoney: Int
     let newTrustPoints: Int
     let tradeId: String
+    let experienceGained: Int
     let purchasedItem: PurchasedItem?
     let soldItem: SoldItem?
 }

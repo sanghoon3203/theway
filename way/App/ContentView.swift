@@ -63,67 +63,97 @@ struct ContentView: View {
 
 // MARK: - 스플래시 스크린
 struct SplashScreenView: View {
-    @State private var compassRotation: Double = 0
     @State private var isAnimating = false
+    @State private var yinYangAnimation = false
     
     var body: some View {
         ZStack {
-            // 배경
-            LinearGradient.oceanWave
+            // 수묵화 배경 - 한지 그라데이션
+            LinearGradient.paperBackground
                 .ignoresSafeArea()
             
-            VStack(spacing: 30) {
-                // 로고 애니메이션
-                ZStack {
-                    Circle()
-                        .fill(LinearGradient.treasureShine)
-                        .frame(width: 120, height: 120)
-                        .shadow(color: .treasureGold.opacity(0.5), radius: 20, x: 0, y: 10)
-                        .scaleEffect(isAnimating ? 1.0 : 0.8)
-                        .opacity(isAnimating ? 1.0 : 0.7)
-                    
-                    Image(systemName: NavigationIcons.compass)
-                        .font(.system(size: 60))
-                        .foregroundColor(.white)
-                        .rotationEffect(.degrees(compassRotation))
-                }
+            // 배경 산 실루엣
+            VStack {
+                Spacer()
+                MountainSilhouette()
+                    .frame(height: 200)
+                    .opacity(0.3)
+            }
+            
+            // 은은한 먹 번짐 패턴
+            InkDotPattern()
+                .opacity(0.2)
+            
+            VStack(spacing: 60) {
+                Spacer()
                 
-                // 앱 제목
-                VStack(spacing: 8) {
-                    Text("서울 대무역상")
-                        .font(.pirateTitle)
-                        .foregroundColor(.waveWhite)
+                // 메인 로고 - 만리 万里 (동양적 스타일)
+                VStack(spacing: 20) {
+                    // 한자 제목 - 수묵화 스타일
+                    Text("万里")
+                        .font(.chineseTitle)
+                        .foregroundColor(.brushText)
+                        .shadow(color: .inkMist, radius: 3, x: 2, y: 2)
+                        .scaleEffect(isAnimating ? 1.0 : 0.9)
                         .opacity(isAnimating ? 1.0 : 0.0)
                     
-                    Text("Seoul Trading Master")
-                        .font(.treasureCaption)
-                        .foregroundColor(.waveWhite.opacity(0.8))
-                        .tracking(3)
+                    // 한글 부제목
+                    Text("만리")
+                        .font(.brushStroke)
+                        .foregroundColor(.fadeText)
+                        .tracking(12)
                         .opacity(isAnimating ? 1.0 : 0.0)
+                    
+                    // 영문 부제목
+                    Text("Ten Thousand Li")
+                        .font(.whisperText)
+                        .foregroundColor(.fadeText)
+                        .tracking(6)
+                        .opacity(isAnimating ? 0.8 : 0.0)
                 }
                 
-                // 로딩 인디케이터
+                // 음양 심볼
+                YinYangSymbol(size: 100)
+                    .scaleEffect(yinYangAnimation ? 1.0 : 0.8)
+                    .opacity(isAnimating ? 1.0 : 0.0)
+                
+                Spacer()
+                
+                // 은은한 로딩 표시
                 VStack(spacing: 16) {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .treasureGold))
-                        .scaleEffect(1.2)
-                        .opacity(isAnimating ? 1.0 : 0.0)
+                    // 수묵화 스타일 로딩 점들
+                    HStack(spacing: 12) {
+                        ForEach(0..<3, id: \.self) { index in
+                            Circle()
+                                .fill(Color.inkBlack.opacity(0.4))
+                                .frame(width: 6, height: 6)
+                                .opacity(isAnimating ? 1.0 : 0.3)
+                                .animation(
+                                    .easeInOut(duration: 1.0)
+                                    .repeatForever(autoreverses: true)
+                                    .delay(Double(index) * 0.2),
+                                    value: isAnimating
+                                )
+                        }
+                    }
                     
-                    Text("항해 준비 중...")
-                        .font(.merchantBody)
-                        .foregroundColor(.waveWhite.opacity(0.8))
+                    Text("천 리 길을 준비하는 중...")
+                        .font(.whisperText)
+                        .foregroundColor(.fadeText)
                         .opacity(isAnimating ? 1.0 : 0.0)
                 }
+                .padding(.bottom, 60)
             }
         }
         .onAppear {
-            // 애니메이션 시작
-            withAnimation(.easeOut(duration: 1.0)) {
+            // 은은한 페이드인 애니메이션
+            withAnimation(.easeOut(duration: 2.0)) {
                 isAnimating = true
             }
             
-            withAnimation(.linear(duration: 3.0).repeatForever(autoreverses: false)) {
-                compassRotation = 360
+            // 음양 심볼 애니메이션
+            withAnimation(.easeInOut(duration: 1.5).delay(0.5)) {
+                yinYangAnimation = true
             }
         }
     }

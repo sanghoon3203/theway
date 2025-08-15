@@ -18,6 +18,10 @@ enum LicenseLevel: Int, CaseIterable, Codable {
         }
     }
     
+    var displayName: String {
+        return title
+    }
+    
     var requiredMoney: Int {
         switch self {
         case .beginner: return 0

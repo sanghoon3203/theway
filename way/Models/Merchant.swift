@@ -292,7 +292,7 @@ enum MerchantPersonality: String, CaseIterable, Codable {
     case serious = "serious"        // 진지한
     case eccentric = "eccentric"    // 괴짜
     
-    var displayName: String {
+    var personalityDisplayName: String {
         switch self {
         case .friendly: return "친화적"
         case .greedy: return "탐욕적"
@@ -313,8 +313,11 @@ enum MerchantMood: String, CaseIterable, Codable {
     case excited = "excited"
     case sad = "sad"
     case mysterious = "mysterious"
+    case wise = "wise"
+    case greedy = "greedy"
+    case friendly = "friendly"
     
-    var displayName: String {
+    var moodDisplayName: String {
         switch self {
         case .happy: return "기분 좋음"
         case .neutral: return "보통"
@@ -323,6 +326,9 @@ enum MerchantMood: String, CaseIterable, Codable {
         case .excited: return "신남"
         case .sad: return "슬픔"
         case .mysterious: return "알 수 없음"
+        case .wise: return "현명함"
+        case .greedy: return "욕심부림"
+        case .friendly: return "친근함"
         }
     }
     
@@ -335,6 +341,9 @@ enum MerchantMood: String, CaseIterable, Codable {
         case .excited: return 0.9       // 10% 할인
         case .sad: return 1.02          // 2% 할증
         case .mysterious: return 1.0    // 정상가
+        case .wise: return 0.98         // 2% 할인 (현명한 거래)
+        case .greedy: return 1.1        // 10% 할증 (욕심)
+        case .friendly: return 0.93     // 7% 할인 (친근함)
         }
     }
     
@@ -347,6 +356,9 @@ enum MerchantMood: String, CaseIterable, Codable {
         case .excited: return "star.fill"
         case .sad: return "cloud.rain"
         case .mysterious: return "questionmark"
+        case .wise: return "brain.head.profile"
+        case .greedy: return "dollarsign.circle"
+        case .friendly: return "heart.circle"
         }
     }
 }
@@ -360,7 +372,7 @@ enum RelationshipStatus: String, CaseIterable, Codable {
     case rival = "rival"
     case enemy = "enemy"
     
-    var displayName: String {
+    var relationshipDisplayName: String {
         switch self {
         case .stranger: return "낯선 사람"
         case .regular: return "단골"
@@ -526,7 +538,7 @@ enum DialogueSituation: String, CaseIterable, Codable {
     case questOffer = "quest_offer"
     case questComplete = "quest_complete"
     
-    var displayName: String {
+    var situationDisplayName: String {
         switch self {
         case .greeting: return "인사"
         case .tradeStart: return "거래 시작"

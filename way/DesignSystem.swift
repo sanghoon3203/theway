@@ -25,7 +25,6 @@ extension Color {
     
     // UI 상태 색상
     static let waveWhite = Color(red: 0.98, green: 0.98, blue: 1.0)
-    static let mistGray = Color(red: 0.85, green: 0.85, blue: 0.87)
     static let stormGray = Color(red: 0.55, green: 0.55, blue: 0.58)
 }
 
@@ -172,6 +171,61 @@ extension View {
     func parchmentCard() -> some View {
         self.modifier(ParchmentCardStyle())
     }
+}
+
+// MARK: - 동양적 수묵화 스타일
+
+// 수묵화 색상 팔레트
+extension Color {
+    // 수묵화 기본 색상
+    static let inkBlack = Color(red: 0.17, green: 0.24, blue: 0.31) // #2c3e50 - 먹색
+    static let paperBeige = Color(red: 0.96, green: 0.96, blue: 0.86) // #f5f5dc - 한지색
+    static let mistGray = Color(red: 0.90, green: 0.90, blue: 0.90) // #e6e6e6 - 안개색
+    static let subtleGray = Color(red: 0.95, green: 0.95, blue: 0.95) // 은은한 회색
+    
+    // 음양 색상
+    static let yinDark = Color(red: 0.17, green: 0.24, blue: 0.31) // 음(陰)
+    static let yangLight = Color(red: 0.98, green: 0.98, blue: 0.95) // 양(陽)
+    
+    // 투명도 색상
+    static let inkMist = Color.black.opacity(0.1) // 먹 번짐 효과
+    static let softWhite = Color.white.opacity(0.5) // 부드러운 흰색
+    
+    // 텍스트 색상
+    static let brushText = Color(red: 0.17, green: 0.24, blue: 0.31) // 붓글씨 색
+    static let fadeText = Color(red: 0.17, green: 0.24, blue: 0.31).opacity(0.7) // 흐린 텍스트
+}
+
+// 수묵화 그라데이션
+extension LinearGradient {
+    // 한지 배경 그라데이션
+    static let paperBackground = LinearGradient(
+        colors: [Color.paperBeige, Color.mistGray],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+    
+    // 은은한 먹 번짐 효과
+    static let inkWash = LinearGradient(
+        colors: [Color.inkMist, Color.clear],
+        startPoint: .center,
+        endPoint: .bottom
+    )
+    
+    // 부드러운 음영
+    static let softShadow = LinearGradient(
+        colors: [Color.inkMist.opacity(0.3), Color.clear],
+        startPoint: .top,
+        endPoint: .bottom
+    )
+}
+
+// 수묵화 폰트
+extension Font {
+    static let chineseTitle = Font.custom("Georgia", size: 56).weight(.ultraLight) // 한자 제목
+    static let brushStroke = Font.system(size: 18, weight: .light, design: .serif) // 붓글씨 느낌
+    static let inkText = Font.system(size: 16, weight: .regular, design: .serif) // 일반 텍스트
+    static let whisperText = Font.system(size: 14, weight: .light, design: .serif) // 작은 텍스트
 }
 
 // MARK: - JRPG 스타일 확장
@@ -435,5 +489,168 @@ struct ItemTooltipStyle: ViewModifier {
 extension View {
     func itemTooltip() -> some View {
         self.modifier(ItemTooltipStyle())
+    }
+}
+
+// MARK: - 동양적 수묵화 컴포넌트
+
+// 음양(태극) 심볼
+struct YinYangSymbol: View {
+    let size: CGFloat
+    @State private var rotation: Double = 0
+    
+    init(size: CGFloat = 120) {
+        self.size = size
+    }
+    
+    var body: some View {
+        ZStack {
+            // 외부 원
+            Circle()
+                .stroke(Color.inkBlack, lineWidth: 3)
+                .frame(width: size, height: size)
+                .background(
+                    Circle()
+                        .fill(Color.softWhite)
+                        .frame(width: size, height: size)
+                )
+            
+            // 음양 패턴
+            ZStack {
+                // 어두운 반원 (음)
+                Path { path in
+                    let center = CGPoint(x: size/2, y: size/2)
+                    let radius = size/2
+                    
+                    path.move(to: CGPoint(x: center.x, y: 0))
+                    path.addArc(center: center, radius: radius, startAngle: .degrees(-90), endAngle: .degrees(90), clockwise: false)
+                    path.addArc(center: CGPoint(x: center.x, y: center.y - radius/2), radius: radius/2, startAngle: .degrees(90), endAngle: .degrees(-90), clockwise: true)
+                    path.addArc(center: CGPoint(x: center.x, y: center.y + radius/2), radius: radius/2, startAngle: .degrees(90), endAngle: .degrees(-90), clockwise: false)
+                    path.closeSubpath()
+                }
+                .fill(Color.yinDark)
+                
+                // 밝은 원 (양 안의 음)
+                Circle()
+                    .fill(Color.yangLight)
+                    .frame(width: size/6, height: size/6)
+                    .offset(y: -size/4)
+                
+                // 어두운 원 (음 안의 양)
+                Circle()
+                    .fill(Color.yinDark)
+                    .frame(width: size/6, height: size/6)
+                    .offset(y: size/4)
+            }
+            .frame(width: size, height: size)
+            .clipped()
+        }
+        .rotationEffect(.degrees(rotation))
+        .onAppear {
+            withAnimation(.linear(duration: 20.0).repeatForever(autoreverses: false)) {
+                rotation = 360
+            }
+        }
+    }
+}
+
+// 수묵화 산 실루엣
+struct MountainSilhouette: View {
+    var body: some View {
+        GeometryReader { geometry in
+            Path { path in
+                let width = geometry.size.width
+                let height = geometry.size.height
+                let baseHeight = height * 0.6
+                
+                path.move(to: CGPoint(x: 0, y: height))
+                
+                // 산봉우리들
+                let peaks = [
+                    (x: width * 0.1, y: baseHeight * 0.7),
+                    (x: width * 0.25, y: baseHeight * 0.4),
+                    (x: width * 0.4, y: baseHeight * 0.6),
+                    (x: width * 0.55, y: baseHeight * 0.2),
+                    (x: width * 0.7, y: baseHeight * 0.5),
+                    (x: width * 0.85, y: baseHeight * 0.3),
+                    (x: width, y: baseHeight * 0.4)
+                ]
+                
+                for peak in peaks {
+                    path.addLine(to: CGPoint(x: peak.x, y: peak.y))
+                }
+                
+                path.addLine(to: CGPoint(x: width, y: height))
+                path.closeSubpath()
+            }
+            .fill(Color.inkMist)
+        }
+    }
+}
+
+// 수묵화 점 패턴
+struct InkDotPattern: View {
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                ForEach(0..<30, id: \.self) { index in
+                    Circle()
+                        .fill(Color.inkMist)
+                        .frame(
+                            width: CGFloat.random(in: 2...6),
+                            height: CGFloat.random(in: 2...6)
+                        )
+                        .position(
+                            x: CGFloat.random(in: 0...geometry.size.width),
+                            y: CGFloat.random(in: 0...geometry.size.height)
+                        )
+                }
+            }
+        }
+    }
+}
+
+// 수묵화 카드 스타일
+struct InkCardStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(24)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.softWhite)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.inkBlack.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: Color.inkMist.opacity(0.5), radius: 8, x: 0, y: 4)
+            )
+    }
+}
+
+extension View {
+    func inkCard() -> some View {
+        self.modifier(InkCardStyle())
+    }
+}
+
+// 수묵화 버튼 스타일
+struct InkButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.brushStroke)
+            .foregroundColor(.inkBlack)
+            .padding(.horizontal, 32)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.softWhite)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.inkBlack.opacity(0.3), lineWidth: 1)
+                    )
+                    .shadow(color: Color.inkMist.opacity(0.3), radius: configuration.isPressed ? 2 : 6, x: 0, y: configuration.isPressed ? 1 : 3)
+            )
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }

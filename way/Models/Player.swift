@@ -66,7 +66,7 @@ class Player: ObservableObject, Codable {
     @Published var completedAchievements: Set<String> = []
     
     // MARK: - 거래 기록
-    @Published var tradeHistory = (try? container.decode([TradeRecord].self, forKey: .tradeHistory)) ?? []
+    @Published var tradeHistory: [TradeRecord] = []
     @Published var totalTrades: Int = 0
     @Published var totalProfit: Int = 0
     @Published var bestDeal: TradeRecord? = nil
@@ -461,7 +461,7 @@ class Player: ObservableObject, Codable {
         return true
     }
     
-    func removeItem(withId itemId: UUID, quantity: Int = 1) -> Bool {
+    func removeItem(withId itemId: String, quantity: Int = 1) -> Bool {
         guard let index = inventory.firstIndex(where: { $0.id == itemId }) else {
             return false
         }
@@ -890,6 +890,7 @@ struct TradeContract: Identifiable, Codable {
         }
     }
 }
+
 
 // MARK: - 서버 응답 모델
 struct ServerPlayerResponse: Codable {

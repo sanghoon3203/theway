@@ -24,7 +24,7 @@ struct InventoryItemCard: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
-                        .background(Color(item.rarity.color))
+                        .background(item.rarity.color.color)
                         .cornerRadius(6)
                     
                     Spacer()
@@ -41,7 +41,7 @@ struct InventoryItemCard: View {
                         .multilineTextAlignment(.leading)
                         .lineLimit(2)
                     
-                    Text(item.category.displayName)
+                    Text(item.category)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     

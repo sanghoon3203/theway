@@ -21,7 +21,7 @@ struct ItemDetailCard: View {
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(Color(item.rarity.color))
+                    .background(item.rarity.color.color)
                     .cornerRadius(8)
                 
                 Spacer()
@@ -31,7 +31,7 @@ struct ItemDetailCard: View {
                 .font(.title2)
                 .fontWeight(.bold)
             
-            Text(item.category.displayName)
+            Text(item.category)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             

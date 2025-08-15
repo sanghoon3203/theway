@@ -23,40 +23,44 @@ struct LoginView: View {
     }
     
     var body: some View {
-        VStack(spacing: 24) {
-            // 타이틀
-            VStack(spacing: 8) {
-                HStack {
-                    Image(systemName: NavigationIcons.anchor)
-                        .font(.title2)
-                        .foregroundColor(.seaBlue)
-                    
-                    Text("항해 준비")
-                        .font(.navigatorTitle)
-                        .foregroundColor(.seaBlue)
-                }
+        VStack(spacing: 30) {
+            // 수묵화 스타일 타이틀
+            VStack(spacing: 16) {
+                Text("로그인")
+                    .font(.brushStroke)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.brushText)
                 
-                Text("모험이 기다리고 있습니다")
-                    .font(.compassSmall)
-                    .foregroundColor(.stormGray)
+                Text("계정에 접속하여 여행을 시작하세요")
+                    .font(.inkText)
+                    .foregroundColor(.fadeText)
+                    .multilineTextAlignment(.center)
             }
             
-            // 입력 필드들
-            VStack(spacing: 16) {
+            // 수묵화 스타일 입력 필드들
+            VStack(spacing: 24) {
                 // 이메일 필드
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: "envelope.fill")
-                            .font(.caption)
-                            .foregroundColor(.seaBlue)
-                        
-                        Text("선장 이메일")
-                            .font(.compassSmall)
-                            .foregroundColor(.seaBlue)
-                    }
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("이메일")
+                        .font(.inkText)
+                        .foregroundColor(.brushText)
                     
-                    TextField("admiral@sailing.com", text: $email)
-                        .textFieldStyle(NavigatorTextFieldStyle())
+                    TextField("이메일을 입력하세요", text: $email)
+                        .font(.inkText)
+                        .foregroundColor(.brushText)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.softWhite)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(
+                                            focusedField == .email ? Color.inkBlack.opacity(0.4) : Color.inkBlack.opacity(0.2), 
+                                            lineWidth: focusedField == .email ? 2 : 1
+                                        )
+                                )
+                        )
                         .keyboardType(.emailAddress)
                         .autocapitalization(.none)
                         .focused($focusedField, equals: .email)
@@ -66,25 +70,21 @@ struct LoginView: View {
                 }
                 
                 // 비밀번호 필드
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Image(systemName: NavigationIcons.lock)
-                            .font(.caption)
-                            .foregroundColor(.seaBlue)
-                        
-                        Text("비밀 항로")
-                            .font(.compassSmall)
-                            .foregroundColor(.seaBlue)
-                    }
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("비밀번호")
+                        .font(.inkText)
+                        .foregroundColor(.brushText)
                     
                     HStack {
                         Group {
                             if isPasswordVisible {
-                                TextField("항로를 입력하세요", text: $password)
+                                TextField("비밀번호를 입력하세요", text: $password)
                             } else {
-                                SecureField("항로를 입력하세요", text: $password)
+                                SecureField("비밀번호를 입력하세요", text: $password)
                             }
                         }
+                        .font(.inkText)
+                        .foregroundColor(.brushText)
                         .focused($focusedField, equals: .password)
                         .onSubmit {
                             performLogin()
@@ -95,11 +95,22 @@ struct LoginView: View {
                         } label: {
                             Image(systemName: isPasswordVisible ? NavigationIcons.eye : NavigationIcons.eyeSlash)
                                 .font(.body)
-                                .foregroundColor(.stormGray)
+                                .foregroundColor(.fadeText)
                         }
-                        .padding(.trailing, 4)
                     }
-                    .textFieldStyle(NavigatorTextFieldStyle())
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.softWhite)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(
+                                        focusedField == .password ? Color.inkBlack.opacity(0.4) : Color.inkBlack.opacity(0.2), 
+                                        lineWidth: focusedField == .password ? 2 : 1
+                                    )
+                            )
+                    )
                 }
             }
             
@@ -111,47 +122,44 @@ struct LoginView: View {
                     HStack(spacing: 12) {
                         ZStack {
                             RoundedRectangle(cornerRadius: 4)
-                                .stroke(rememberMe ? Color.treasureGold : Color.mistGray, lineWidth: 2)
-                                .frame(width: 20, height: 20)
+                                .stroke(rememberMe ? Color.brushText : Color.fadeText, lineWidth: 2)
+                                .frame(width: 18, height: 18)
                             
                             if rememberMe {
                                 Image(systemName: "checkmark")
-                                    .font(.caption.weight(.bold))
-                                    .foregroundColor(.treasureGold)
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundColor(.brushText)
                             }
                         }
                         
-                        Text("다음에도 자동으로 항해 시작")
-                            .font(.merchantBody)
-                            .foregroundColor(.seaBlue)
+                        Text("자동 로그인")
+                            .font(.inkText)
+                            .foregroundColor(.brushText)
                     }
                 }
                 
                 Spacer()
             }
             
-            // 로그인 버튼
+            // 로그인 버튼 - 수묵화 스타일
             Button {
                 performLogin()
             } label: {
                 HStack(spacing: 12) {
                     if isLoading {
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                            .scaleEffect(0.8)
-                    } else {
-                        Image(systemName: NavigationIcons.ship)
-                            .font(.body)
-                        
-                        Text("항해 출발!")
-                            .fontWeight(.semibold)
+                            .progressViewStyle(CircularProgressViewStyle(tint: .brushText))
+                            .scaleEffect(0.9)
                     }
+                    
+                    Text("여행 시작")
+                        .font(.brushStroke)
+                        .fontWeight(.medium)
                 }
-                .frame(maxWidth: .infinity)
             }
-            .buttonStyle(TreasureButtonStyle())
+            .buttonStyle(InkButtonStyle())
             .disabled(isLoading || email.isEmpty || password.isEmpty)
-            .opacity((email.isEmpty || password.isEmpty) ? 0.6 : 1.0)
+            .opacity((isLoading || email.isEmpty || password.isEmpty) ? 0.5 : 1.0)
             
             // 에러 메시지 표시
             if let errorMessage = gameManager.errorMessage {

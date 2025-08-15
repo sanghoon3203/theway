@@ -12,7 +12,7 @@ struct AchievementView: View {
         case exploration = "탐험"
         case social = "사회"
         case collection = "수집"
-        case combat = "전투"
+        case character = "캐릭터"
         
         var icon: String {
             switch self {
@@ -21,7 +21,7 @@ struct AchievementView: View {
             case .exploration: return "map.fill"
             case .social: return "person.2.fill"
             case .collection: return "bag.fill"
-            case .combat: return "shield.fill"
+            case .character: return "person.circle.fill"
             }
         }
         
@@ -32,7 +32,7 @@ struct AchievementView: View {
             case .exploration: return .seaBlue
             case .social: return .expGreen
             case .collection: return .manaBlue
-            case .combat: return .compass
+            case .character: return .compass
             }
         }
     }
@@ -162,20 +162,29 @@ struct AchievementView: View {
         
         // 카테고리 필터
         if selectedCategory != .all {
-            filtered = filtered.filter { $0.category.rawValue == selectedCategory.rawValue }
+            let categoryMap: [AchievementCategory: String] = [
+                .trading: "trading",
+                .exploration: "exploration", 
+                .social: "social",
+                .collection: "collection",
+                .character: "character"
+            ]
+            if let categoryString = categoryMap[selectedCategory] {
+                filtered = filtered.filter { $0.category.rawValue == categoryString }
+            }
         }
         
         // 미수령 필터
         if showUnclaimedOnly {
-            filtered = filtered.filter { $0.isCompleted && !$0.isClaimed }
+            filtered = filtered.filter { $0.isCompleted && !$0.claimed }
         }
         
-        return filtered.sorted { first, second in
+        return filtered.sorted { (first: Achievement, second: Achievement) -> Bool in
             // 미수령 업적을 맨 위로
-            if first.isCompleted && !first.isClaimed && !(second.isCompleted && !second.isClaimed) {
+            if first.isCompleted && !first.claimed && !(second.isCompleted && !second.claimed) {
                 return true
             }
-            if second.isCompleted && !second.isClaimed && !(first.isCompleted && !first.isClaimed) {
+            if second.isCompleted && !second.claimed && !(first.isCompleted && !first.claimed) {
                 return false
             }
             
@@ -195,7 +204,7 @@ struct AchievementView: View {
     private var totalCount: Int { achievementManager.achievements.count }
     private var completedCount: Int { achievementManager.achievements.filter { $0.isCompleted }.count }
     private var inProgressCount: Int { achievementManager.achievements.filter { !$0.isCompleted && $0.currentProgress > 0 }.count }
-    private var unclaimedCount: Int { achievementManager.achievements.filter { $0.isCompleted && !$0.isClaimed }.count }
+    private var unclaimedCount: Int { achievementManager.achievements.filter { $0.isCompleted && !$0.claimed }.count }
 }
 
 // MARK: - CategoryButton 컴포넌트
@@ -253,32 +262,7 @@ struct StatCard: View {
     }
 }
 
-// MARK: - Achievement 모델
-struct Achievement: Identifiable, Codable {
-    let id: String
-    let name: String
-    let description: String
-    let category: AchievementCategoryModel
-    let conditionType: String
-    let targetValue: Int
-    var currentProgress: Int = 0
-    var isCompleted: Bool { currentProgress >= targetValue }
-    var isClaimed: Bool = false
-    let rewardType: String
-    let rewardValue: String
-    let iconId: Int
-    let isHidden: Bool
-    let createdAt: Date
-    
-    var progressPercentage: Double {
-        guard targetValue > 0 else { return isCompleted ? 1.0 : 0.0 }
-        return min(Double(currentProgress) / Double(targetValue), 1.0)
-    }
-    
-    enum AchievementCategoryModel: String, Codable {
-        case trading, exploration, social, collection, combat
-    }
-}
+// MARK: - Achievement 모델은 Models/Achievement.swift에서 가져옴
 
 // MARK: - AchievementManager
 class AchievementManager: ObservableObject {
@@ -290,79 +274,22 @@ class AchievementManager: ObservableObject {
     }
     
     private func loadInitialAchievements() {
-        achievements = [
-            Achievement(
-                id: "first_trade",
-                name: "첫 거래",
-                description: "첫 번째 거래를 완료하세요",
-                category: .trading,
-                conditionType: "trade_count",
-                targetValue: 1,
-                currentProgress: 0,
-                rewardType: "exp",
-                rewardValue: "50",
-                iconId: 1,
-                isHidden: false,
-                createdAt: Date()
-            ),
-            Achievement(
-                id: "money_maker_1",
-                name: "돈벌이 초보",
-                description: "10만원을 벌어보세요",
-                category: .trading,
-                conditionType: "money_earned",
-                targetValue: 100000,
-                currentProgress: 45000,
-                rewardType: "money",
-                rewardValue: "5000",
-                iconId: 2,
-                isHidden: false,
-                createdAt: Date()
-            ),
-            Achievement(
-                id: "collector_1",
-                name: "수집가",
-                description: "10개의 서로 다른 아이템을 수집하세요",
-                category: .collection,
-                conditionType: "unique_items",
-                targetValue: 10,
-                currentProgress: 7,
-                rewardType: "cosmetic",
-                rewardValue: "collector_badge",
-                iconId: 3,
-                isHidden: false,
-                createdAt: Date()
-            ),
-            Achievement(
-                id: "explorer_1",
-                name: "서울 탐험가",
-                description: "5개 구역에서 거래하세요",
-                category: .exploration,
-                conditionType: "districts_visited",
-                targetValue: 5,
-                currentProgress: 5,
-                isClaimed: false,
-                rewardType: "title",
-                rewardValue: "탐험가",
-                iconId: 4,
-                isHidden: false,
-                createdAt: Date()
-            )
-        ]
+        // 샘플 데이터는 Achievement.sampleAchievements를 사용
+        achievements = Achievement.sampleAchievements
     }
     
     func checkAchievement(_ type: String, value: Int) {
         // TODO: 실제 업적 체크 로직
         for index in achievements.indices {
             if achievements[index].conditionType == type && !achievements[index].isCompleted {
-                achievements[index].currentProgress = min(value, achievements[index].targetValue)
+                achievements[index].currentProgress = min(value, achievements[index].conditionValue)
             }
         }
     }
     
     func claimReward(_ achievement: Achievement) {
         if let index = achievements.firstIndex(where: { $0.id == achievement.id }) {
-            achievements[index].isClaimed = true
+            achievements[index].claimed = true
             // TODO: 실제 보상 지급 로직
         }
     }

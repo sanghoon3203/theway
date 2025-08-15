@@ -20,7 +20,7 @@ struct BuyItemRow: View {
     }
     
     private var hasSpace: Bool {
-            gameManager.player.hasInventorySpace // 새로운 computed property 사용
+            gameManager.player.inventory.count < gameManager.player.maxInventorySize
         }
     
     private var canPurchase: Bool {
@@ -42,11 +42,11 @@ struct BuyItemRow: View {
                             .foregroundColor(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
-                            .background(Color(item.rarity.color))
+                            .background(item.rarity.color.color)
                             .cornerRadius(4)
                                    }
                 
-                Text(item.category.displayName)
+                Text(item.category)
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
@@ -58,7 +58,7 @@ struct BuyItemRow: View {
                                    Text("인벤토리 가득참")
                                        .font(.caption)
                                        .foregroundColor(.red)
-                               } else if !gameManager.player.canTradeItem(item) {
+                               } else if !item.canUse(by: gameManager.player) {
                                    Text("라이센스 부족")
                                        .font(.caption)
                                        .foregroundColor(.orange)

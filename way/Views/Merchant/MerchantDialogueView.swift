@@ -1,5 +1,6 @@
 // 📁 Views/Merchant/MerchantDialogueView.swift - 상인 대화 시스템
 import SwiftUI
+import CoreLocation
 
 struct MerchantDialogueView: View {
     let merchant: Merchant
@@ -43,7 +44,7 @@ struct MerchantDialogueView: View {
                 dialogueArea
                 
                 // 대화 옵션들
-                dialogueOptions
+                dialogueOptionsView
                 
                 // 하단 액션 버튼들
                 actionButtons
@@ -86,7 +87,7 @@ struct MerchantDialogueView: View {
                 
                 // 상인 기분 표시
                 HStack(spacing: 8) {
-                    MoodIndicator(mood: merchant.currentMood)
+                    MoodIndicator(mood: merchant.mood)
                     
                     Button(action: { showRelationshipInfo.toggle() }) {
                         RelationshipMeter(
@@ -141,7 +142,7 @@ struct MerchantDialogueView: View {
     }
     
     // MARK: - 대화 옵션들
-    private var dialogueOptions: some View {
+    private var dialogueOptionsView: some View {
         LazyVStack(spacing: 8) {
             ForEach(dialogueOptions) { option in
                 DialogueOptionButton(
@@ -209,6 +210,12 @@ struct MerchantDialogueView: View {
             
         case .cheerful:
             return "하하! 반갑습니다! 오늘도 좋은 하루네요!"
+            
+        case .serious:
+            return "어서 오십시오. 무엇을 찾고 계신지요?"
+            
+        case .eccentric:
+            return "오호! 흥미로운 손님이 오셨군요. 특별한 것을 찾나요?"
         }
     }
     
@@ -295,6 +302,12 @@ struct MerchantDialogueView: View {
             currentDialogue = "세월이 흘러도 이 늙은 몸은 아직 건재하답니다."
         case .cheerful:
             currentDialogue = "매일매일이 즐거워요! 좋은 사람들을 만나니까 말이죠!"
+            
+        case .serious:
+            currentDialogue = "그저 그렇습니다. 일에 집중하고 있을 뿐이에요."
+            
+        case .eccentric:
+            currentDialogue = "아주 신나는 하루였어요! 이상한 일들이 많이 일어났거든요!"
         }
     }
     
@@ -355,23 +368,20 @@ struct DialogueOptionButton: View {
             title: "고대 지식의 수호자",
             type: .mystic,
             personality: .wise,
-            district: .jongno,
+            district: .myeongdong,
             coordinate: CLLocationCoordinate2D(latitude: 37.5735, longitude: 126.9788),
             requiredLicense: .intermediate,
-            appearanceId: 4,
-            portraitId: 4,
             priceModifier: 1.2,
             negotiationDifficulty: 5,
             preferredItems: ["artifact", "material"],
             dislikedItems: ["modern"],
             reputationRequirement: 100,
             friendshipLevel: 30,
-            inventory: [],
             trustLevel: 0,
-            isActive: true,
-            currentMood: .wise,
-            lastRestocked: Date(),
-            specialAbilities: [.mysticalAppraisal, .fortuneTelling],
+            appearanceId: 4,
+            portraitId: 4,
+            mood: .wise,
+            specialAbilities: [.appraisal, .fortuneTelling],
             isQuestGiver: true
         )
     )

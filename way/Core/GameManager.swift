@@ -307,14 +307,15 @@ extension GameManager {
         player.currentLicense = LicenseLevel(rawValue: data.currentLicense) ?? .beginner
         player.maxInventorySize = data.maxInventorySize
         
-        // ✅ TradeItem 생성자 정확한 순서: name, category, basePrice, grade, requiredLicense, currentPrice
+        // ✅ TradeItem 생성자 정확한 순서: itemId, name, category, grade, requiredLicense, basePrice, currentPrice
         player.inventory = data.inventory.map { item in
             TradeItem(
+                itemId: item.id ?? UUID().uuidString,
                 name: item.name,
                 category: item.category,
-                basePrice: item.basePrice,
                 grade: ItemGrade(rawValue: item.grade) ?? .common,
                 requiredLicense: LicenseLevel(rawValue: item.requiredLicense) ?? .beginner,
+                basePrice: item.basePrice,
                 currentPrice: item.currentPrice
             )
         }
@@ -339,7 +340,7 @@ extension GameManager {
     private func updateMerchants(_ merchantData: [MerchantData]) {
         merchants = merchantData.compactMap { data in
             // ✅ 정확한 enum 변환 확인
-            guard let merchantType = Merchant.MerchantType(rawValue: data.type),
+            guard let merchantType = MerchantType(rawValue: data.type),
                   let district = SeoulDistrict(rawValue: data.district),
                   let license = LicenseLevel(rawValue: data.requiredLicense) else {
                 return nil
@@ -454,7 +455,7 @@ extension GameManager {
         
         do {
             let response = try await networkManager.sellItem(
-                itemId: inventoryItem.id.uuidString,
+                itemId: inventoryItem.id,
                 merchantId: merchant.id
             )
             
@@ -522,11 +523,12 @@ extension GameManager {
             if let purchasedItem = data.purchasedItem {
                 // ✅ TradeItem 생성자 정확한 순서
                 let newItem = TradeItem(
+                    itemId: purchasedItem.id ?? UUID().uuidString,
                     name: purchasedItem.name,
                     category: purchasedItem.category,
-                    basePrice: purchasedItem.purchasePrice,
                     grade: ItemGrade(rawValue: purchasedItem.grade) ?? .common,
                     requiredLicense: .beginner,
+                    basePrice: purchasedItem.purchasePrice,
                     currentPrice: purchasedItem.purchasePrice
                 )
                 self.player.inventory.append(newItem)
@@ -628,27 +630,27 @@ extension GameManager {
 extension GameManager {
     private func generateElectronicsItems() -> [TradeItem] {
         return [
-            // ✅ TradeItem 생성자 정확한 순서 (stock 파라미터 제거)
-            TradeItem(name: "iPhone 15 Pro", category: "IT부품", basePrice: 1200000, grade: .rare, requiredLicense: .intermediate, currentPrice: randomPrice(base: 1200000)),
-            TradeItem(name: "MacBook Pro", category: "IT부품", basePrice: 2500000, grade: .rare, requiredLicense: .intermediate, currentPrice: randomPrice(base: 2500000)),
-            TradeItem(name: "Galaxy S24", category: "IT부품", basePrice: 1000000, grade: .intermediate, requiredLicense: .beginner, currentPrice: randomPrice(base: 1000000)),
-            TradeItem(name: "iPad Air", category: "IT부품", basePrice: 800000, grade: .intermediate, requiredLicense: .beginner, currentPrice: randomPrice(base: 800000))
+            // ✅ TradeItem 생성자 정확한 순서 (itemId 추가)
+            TradeItem(itemId: "iphone_15_pro", name: "iPhone 15 Pro", category: "IT부품", grade: .rare, requiredLicense: .intermediate, basePrice: 1200000, currentPrice: randomPrice(base: 1200000)),
+            TradeItem(itemId: "macbook_pro", name: "MacBook Pro", category: "IT부품", grade: .rare, requiredLicense: .intermediate, basePrice: 2500000, currentPrice: randomPrice(base: 2500000)),
+            TradeItem(itemId: "galaxy_s24", name: "Galaxy S24", category: "IT부품", grade: .intermediate, requiredLicense: .beginner, basePrice: 1000000, currentPrice: randomPrice(base: 1000000)),
+            TradeItem(itemId: "ipad_air", name: "iPad Air", category: "IT부품", grade: .intermediate, requiredLicense: .beginner, basePrice: 800000, currentPrice: randomPrice(base: 800000))
         ]
     }
     
     private func generateLuxuryItems() -> [TradeItem] {
         return [
-            TradeItem(name: "Louis Vuitton 가방", category: "명품", basePrice: 3000000, grade: .legendary, requiredLicense: .advanced, currentPrice: randomPrice(base: 3000000)),
-            TradeItem(name: "Rolex 시계", category: "명품", basePrice: 15000000, grade: .legendary, requiredLicense: .advanced, currentPrice: randomPrice(base: 15000000)),
-            TradeItem(name: "Hermes 스카프", category: "명품", basePrice: 500000, grade: .rare, requiredLicense: .intermediate, currentPrice: randomPrice(base: 500000))
+            TradeItem(itemId: "lv_bag", name: "Louis Vuitton 가방", category: "명품", grade: .legendary, requiredLicense: .advanced, basePrice: 3000000, currentPrice: randomPrice(base: 3000000)),
+            TradeItem(itemId: "rolex_watch", name: "Rolex 시계", category: "명품", grade: .legendary, requiredLicense: .advanced, basePrice: 15000000, currentPrice: randomPrice(base: 15000000)),
+            TradeItem(itemId: "hermes_scarf", name: "Hermes 스카프", category: "명품", grade: .rare, requiredLicense: .intermediate, basePrice: 500000, currentPrice: randomPrice(base: 500000))
         ]
     }
     
     private func generateFashionItems() -> [TradeItem] {
         return [
-            TradeItem(name: "Nike 에어맥스", category: "의류", basePrice: 300000, grade: .common, requiredLicense: .beginner, currentPrice: randomPrice(base: 300000)),
-            TradeItem(name: "디자이너 청바지", category: "의류", basePrice: 400000, grade: .common, requiredLicense: .beginner, currentPrice: randomPrice(base: 400000)),
-            TradeItem(name: "한정판 후드티", category: "의류", basePrice: 250000, grade: .intermediate, requiredLicense: .beginner, currentPrice: randomPrice(base: 250000))
+            TradeItem(itemId: "nike_airmax", name: "Nike 에어맥스", category: "의류", grade: .common, requiredLicense: .beginner, basePrice: 300000, currentPrice: randomPrice(base: 300000)),
+            TradeItem(itemId: "designer_jeans", name: "디자이너 청바지", category: "의류", grade: .common, requiredLicense: .beginner, basePrice: 400000, currentPrice: randomPrice(base: 400000)),
+            TradeItem(itemId: "limited_hoodie", name: "한정판 후드티", category: "의류", grade: .intermediate, requiredLicense: .beginner, basePrice: 250000, currentPrice: randomPrice(base: 250000))
         ]
     }
     

@@ -26,7 +26,7 @@ struct AchievementMiniCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(achievement.name)
-                            .font(.compassBody)
+                            .font(.merchantBody)
                             .foregroundColor(.dialogueText)
                             .lineLimit(1)
                         
@@ -64,7 +64,7 @@ struct AchievementMiniCard: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(LinearGradient.parchmentBase)
+                    .fill(LinearGradient.parchmentGlow)
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
                             .stroke(
@@ -153,11 +153,11 @@ struct AchievementNotification: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(achievement.name)
-                        .font(.merchantTitle)
+                        .font(.navigatorTitle)
                         .foregroundColor(.dialogueText)
                     
                     Text(achievement.description)
-                        .font(.compassBody)
+                        .font(.merchantBody)
                         .foregroundColor(.mistGray)
                         .lineLimit(2)
                     
@@ -204,7 +204,7 @@ struct AchievementSummary: View {
         VStack(spacing: 12) {
             HStack {
                 Text("업적 현황")
-                    .font(.merchantTitle)
+                    .font(.navigatorTitle)
                     .foregroundColor(.treasureGold)
                 
                 Spacer()
@@ -218,13 +218,13 @@ struct AchievementSummary: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("전체 진행률")
-                        .font(.compassBody)
+                        .font(.merchantBody)
                         .foregroundColor(.dialogueText)
                     
                     Spacer()
                     
                     Text("\(Int(viewModel.completionRate * 100))%")
-                        .font(.compassBody)
+                        .font(.merchantBody)
                         .foregroundColor(.expGreen)
                 }
                 

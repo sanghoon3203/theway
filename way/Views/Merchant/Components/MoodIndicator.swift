@@ -7,12 +7,12 @@ struct MoodIndicator: View {
     var body: some View {
         HStack(spacing: 6) {
             // 기분 아이콘
-            Image(systemName: moodIcon)
+            Image(systemName: mood.icon)
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(moodColor)
             
             // 기분 텍스트
-            Text(mood.displayName)
+            Text(mood.moodDisplayName)
                 .font(.compassSmall)
                 .foregroundColor(moodColor)
         }
@@ -28,30 +28,6 @@ struct MoodIndicator: View {
         )
     }
     
-    private var moodIcon: String {
-        switch mood {
-        case .happy:
-            return "face.smiling"
-        case .neutral:
-            return "face.dashed"
-        case .grumpy:
-            return "face.frowning"
-        case .excited:
-            return "sparkles"
-        case .sad:
-            return "cloud.rain"
-        case .angry:
-            return "flame"
-        case .mysterious:
-            return "questionmark.circle"
-        case .wise:
-            return "brain.head.profile"
-        case .greedy:
-            return "dollarsign.circle"
-        case .friendly:
-            return "heart.circle"
-        }
-    }
     
     private var moodColor: Color {
         switch mood {
@@ -71,23 +47,6 @@ struct MoodIndicator: View {
     }
 }
 
-// MerchantMood enum 확장
-extension MerchantMood {
-    var displayName: String {
-        switch self {
-        case .happy: return "기분 좋음"
-        case .neutral: return "평범함"
-        case .grumpy: return "기분 나쁨"
-        case .excited: return "신남"
-        case .sad: return "우울함"
-        case .angry: return "화남"
-        case .mysterious: return "신비로움"
-        case .wise: return "현명함"
-        case .greedy: return "욕심부림"
-        case .friendly: return "친근함"
-        }
-    }
-}
 
 #Preview {
     VStack(spacing: 16) {

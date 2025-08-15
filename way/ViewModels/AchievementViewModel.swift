@@ -1,6 +1,7 @@
 // 📁 ViewModels/AchievementViewModel.swift - 업적 뷰모델
 import Foundation
 import Combine
+import UIKit
 
 @MainActor
 class AchievementViewModel: ObservableObject {
@@ -10,7 +11,7 @@ class AchievementViewModel: ObservableObject {
     @Published var showCompletionAlert = false
     @Published var newlyCompletedAchievement: Achievement?
     
-    private let apiService = APIService.shared
+    private let networkManager = NetworkManager.shared
     private var cancellables = Set<AnyCancellable>()
     
     init() {
@@ -23,29 +24,12 @@ class AchievementViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        apiService.request(
-            endpoint: "/api/game/achievements/progress",
-            method: .GET,
-            responseType: AchievementProgressResponse.self
-        )
-        .receive(on: DispatchQueue.main)
-        .sink(
-            receiveCompletion: { [weak self] completion in
-                self?.isLoading = false
-                if case .failure(let error) = completion {
-                    self?.errorMessage = error.localizedDescription
-                    print("업적 로드 실패: \(error)")
-                }
-            },
-            receiveValue: { [weak self] response in
-                if response.success {
-                    self?.achievements = response.data.map { Achievement(from: $0) }
-                } else {
-                    self?.errorMessage = "업적을 불러올 수 없습니다."
-                }
-            }
-        )
-        .store(in: &cancellables)
+        // TODO: 실제 API 연동 시 NetworkManager 사용
+        // 현재는 샘플 데이터 사용
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.isLoading = false
+            // 샘플 데이터는 이미 init에서 로드됨
+        }
     }
     
     // MARK: - 보상 수령
@@ -55,62 +39,19 @@ class AchievementViewModel: ObservableObject {
             return
         }
         
-        apiService.request(
-            endpoint: "/api/game/achievements/\(achievementId)/claim",
-            method: .POST,
-            responseType: AchievementClaimResponse.self
-        )
-        .receive(on: DispatchQueue.main)
-        .sink(
-            receiveCompletion: { completion in
-                if case .failure(let error) = completion {
-                    print("보상 수령 실패: \(error)")
-                }
-            },
-            receiveValue: { [weak self] response in
-                if response.success {
-                    // 로컬에서 업적 상태 업데이트
-                    if let index = self?.achievements.firstIndex(where: { $0.id == achievementId }) {
-                        self?.achievements[index].claimed = true
-                    }
-                    
-                    // 성공 메시지 표시
-                    self?.showSuccessMessage(response.data?.message ?? "보상을 받았습니다!")
-                } else {
-                    self?.errorMessage = response.error ?? "보상 수령에 실패했습니다."
-                }
-            }
-        )
-        .store(in: &cancellables)
+        // TODO: 실제 API 연동
+        // 현재는 로컬에서만 업데이트
+        if let index = achievements.firstIndex(where: { $0.id == achievementId }) {
+            achievements[index].claimed = true
+            showSuccessMessage("보상을 받았습니다!")
+        }
     }
     
     // MARK: - 업적 체크 (게임 플레이 중 호출)
     func checkForNewAchievements() {
-        apiService.request(
-            endpoint: "/api/game/achievements/check",
-            method: .POST,
-            responseType: NewAchievementResponse.self
-        )
-        .receive(on: DispatchQueue.main)
-        .sink(
-            receiveCompletion: { completion in
-                if case .failure(let error) = completion {
-                    print("업적 체크 실패: \(error)")
-                }
-            },
-            receiveValue: { [weak self] response in
-                if response.success, !response.data.newAchievements.isEmpty {
-                    // 새로 완료된 업적들 처리
-                    for newAchievement in response.data.newAchievements {
-                        self?.handleNewAchievement(newAchievement)
-                    }
-                    
-                    // 업적 목록 새로고침
-                    self?.loadAchievements()
-                }
-            }
-        )
-        .store(in: &cancellables)
+        // TODO: 실제 API 연동
+        // 현재는 시뮬레이션 데이터 사용
+        print("업적 체크 실행됨 (현재 샘플 모드)")
     }
     
     // MARK: - Private Methods

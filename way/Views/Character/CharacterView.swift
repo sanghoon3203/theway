@@ -26,28 +26,41 @@ struct CharacterView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // 배경
-                LinearGradient.oceanWave
+                // 수묵화 배경
+                LinearGradient.paperBackground
                     .ignoresSafeArea()
                 
+                // 배경 산 실루엣
+                VStack {
+                    Spacer()
+                    MountainSilhouette()
+                        .frame(height: 120)
+                        .opacity(0.1)
+                }
+                
+                // 은은한 먹 점 패턴
+                InkDotPattern()
+                    .opacity(0.08)
+                
                 ScrollView {
-                    LazyVStack(spacing: 20) {
-                        // 캐릭터 헤더
-                        characterHeader
+                    LazyVStack(spacing: 25) {
+                        // 수묵화 스타일 캐릭터 헤더
+                        inkCharacterHeader
                         
-                        // 레벨 진행률 카드
-                        levelProgressCard
+                        // 수묵화 스타일 레벨 진행률
+                        inkLevelProgressCard
                         
-                        // 탭 선택기
-                        tabSelector
+                        // 수묵화 스타일 탭 선택기
+                        inkTabSelector
                         
                         // 탭별 콘텐츠
-                        tabContent
+                        inkTabContent
                     }
-                    .padding()
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
                 }
             }
-            .navigationTitle("캐릭터")
+            .navigationTitle("여행자 정보")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -62,7 +75,7 @@ struct CharacterView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
-                            .foregroundColor(.treasureGold)
+                            .foregroundColor(.brushText)
                     }
                 }
             }
@@ -75,218 +88,330 @@ struct CharacterView: View {
         }
     }
     
-    // MARK: - 캐릭터 헤더
-    private var characterHeader: some View {
-        HStack(spacing: 16) {
-            // 캐릭터 아바타
-            AsyncImage(url: URL(string: "https://via.placeholder.com/100")) { image in
-                image
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } placeholder: {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 50))
-                    .foregroundColor(.mistGray)
+    // MARK: - 수묵화 스타일 캐릭터 헤더
+    private var inkCharacterHeader: some View {
+        HStack(spacing: 20) {
+            // 캐릭터 아바타 - 수묵화 스타일
+            ZStack {
+                Circle()
+                    .fill(Color.softWhite)
+                    .frame(width: 90, height: 90)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.inkBlack.opacity(0.2), lineWidth: 2)
+                    )
+                    .shadow(color: Color.inkMist.opacity(0.3), radius: 6, x: 0, y: 3)
+                
+                Image(systemName: "figure.walk")
+                    .font(.system(size: 40))
+                    .foregroundColor(.brushText.opacity(0.7))
             }
-            .characterPortrait(size: 100)
             
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 12) {
                 // 캐릭터 이름과 레벨
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(gameManager.player.name)
-                        .font(.navigatorTitle)
-                        .foregroundColor(.dialogueText)
+                        .font(.brushStroke)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.brushText)
                     
                     Text("레벨 \(gameManager.player.level)")
-                        .font(.treasureCaption)
-                        .foregroundColor(.treasureGold)
+                        .font(.inkText)
+                        .foregroundColor(.fadeText)
                 }
                 
-                // 라이센스 정보
-                HStack(spacing: 8) {
-                    Image(systemName: "shield.fill")
-                        .foregroundColor(.seaBlue)
+                // 여행자 등급 정보
+                HStack(spacing: 10) {
+                    Image(systemName: "seal.fill")
+                        .foregroundColor(.brushText.opacity(0.6))
+                        .font(.caption)
                     Text("\(gameManager.player.currentLicense.displayName)")
-                        .font(.merchantBody)
-                        .foregroundColor(.seaBlue)
+                        .font(.inkText)
+                        .foregroundColor(.brushText.opacity(0.8))
                 }
                 
                 // 사용 가능한 포인트들
-                HStack(spacing: 16) {
-                    if gameManager.player.statPoints > 0 {
-                        Label("\(gameManager.player.statPoints)", systemImage: "plus.circle.fill")
-                            .font(.compassSmall)
-                            .foregroundColor(.expGreen)
-                    }
-                    
-                    if gameManager.player.skillPoints > 0 {
-                        Label("\(gameManager.player.skillPoints)", systemImage: "brain.fill")
-                            .font(.compassSmall)
-                            .foregroundColor(.manaBlue)
+                if gameManager.player.statPoints > 0 || gameManager.player.skillPoints > 0 {
+                    HStack(spacing: 12) {
+                        if gameManager.player.statPoints > 0 {
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(Color.brushText.opacity(0.6))
+                                    .frame(width: 6, height: 6)
+                                Text("능력 \(gameManager.player.statPoints)")
+                                    .font(.whisperText)
+                                    .foregroundColor(.brushText.opacity(0.8))
+                            }
+                        }
+                        
+                        if gameManager.player.skillPoints > 0 {
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(Color.brushText.opacity(0.6))
+                                    .frame(width: 6, height: 6)
+                                Text("기술 \(gameManager.player.skillPoints)")
+                                    .font(.whisperText)
+                                    .foregroundColor(.brushText.opacity(0.8))
+                            }
+                        }
                     }
                 }
             }
             
             Spacer()
         }
-        .parchmentCard()
+        .inkCard()
     }
     
-    // MARK: - 레벨 진행률 카드
-    private var levelProgressCard: some View {
-        LevelProgressCard(
-            currentLevel: gameManager.player.level,
-            currentExp: gameManager.player.experience,
-            nextLevelExp: expRequiredForNextLevel,
-            money: gameManager.player.money,
-            trustPoints: gameManager.player.trustPoints
-        )
+    // MARK: - 수묵화 스타일 레벨 진행률 카드
+    private var inkLevelProgressCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // 레벨 정보
+            HStack {
+                Text("레벨 \(gameManager.player.level)")
+                    .font(.brushStroke)
+                    .foregroundColor(.brushText)
+                
+                Spacer()
+                
+                Text("\(gameManager.player.experience) / \(expRequiredForNextLevel) 경험치")
+                    .font(.whisperText)
+                    .foregroundColor(.fadeText)
+            }
+            
+            // 경험치 바 - 수묵화 스타일
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // 배경
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.inkMist.opacity(0.3))
+                        .frame(height: 8)
+                    
+                    // 진행률
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.brushText.opacity(0.6), Color.brushText],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(
+                            width: geometry.size.width * min(Double(gameManager.player.experience) / Double(expRequiredForNextLevel), 1.0),
+                            height: 8
+                        )
+                        .animation(.easeInOut(duration: 0.5), value: gameManager.player.experience)
+                }
+            }
+            .frame(height: 8)
+            
+            // 재화 정보
+            HStack(spacing: 24) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Color.brushText.opacity(0.6))
+                        .frame(width: 6, height: 6)
+                    Text("\(gameManager.player.money) 전")
+                        .font(.whisperText)
+                        .foregroundColor(.brushText.opacity(0.8))
+                }
+                
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Color.brushText.opacity(0.6))
+                        .frame(width: 6, height: 6)
+                    Text("신뢰도 \(gameManager.player.trustPoints)")
+                        .font(.whisperText)
+                        .foregroundColor(.brushText.opacity(0.8))
+                }
+            }
+        }
+        .inkCard()
     }
     
-    // MARK: - 탭 선택기
-    private var tabSelector: some View {
+    // MARK: - 수묵화 스타일 탭 선택기
+    private var inkTabSelector: some View {
         HStack(spacing: 0) {
             ForEach(CharacterTab.allCases, id: \.self) { tab in
                 Button(action: {
-                    selectedTab = tab
-                }) {
-                    VStack(spacing: 4) {
-                        Image(systemName: tab.icon)
-                            .font(.system(size: 16))
-                        Text(tab.rawValue)
-                            .font(.compassSmall)
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedTab = tab
                     }
+                }) {
+                    VStack(spacing: 8) {
+                        Image(systemName: tab.icon)
+                            .font(.system(size: 16, weight: selectedTab == tab ? .medium : .regular))
+                            .foregroundColor(selectedTab == tab ? .brushText : .fadeText)
+                        
+                        Text(tab.rawValue)
+                            .font(.whisperText)
+                            .fontWeight(selectedTab == tab ? .medium : .regular)
+                            .foregroundColor(selectedTab == tab ? .brushText : .fadeText)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(selectedTab == tab ? Color.inkMist.opacity(0.2) : Color.clear)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(selectedTab == tab ? Color.inkBlack.opacity(0.1) : Color.clear, lineWidth: 1)
+                            )
+                    )
                 }
-                .buttonStyle(JRPGMenuButtonStyle(isSelected: selectedTab == tab))
-                .frame(maxWidth: .infinity)
+                .animation(.easeInOut(duration: 0.2), value: selectedTab)
             }
         }
-        .parchmentCard()
+        .inkCard()
     }
     
-    // MARK: - 탭별 콘텐츠
+    // MARK: - 수묵화 스타일 탭별 콘텐츠
     @ViewBuilder
-    private var tabContent: some View {
+    private var inkTabContent: some View {
         switch selectedTab {
         case .stats:
-            characterStatsView
+            inkCharacterStatsView
         case .skills:
-            characterSkillsView
+            inkCharacterSkillsView
         case .achievements:
-            achievementsView
+            inkAchievementsView
         case .appearance:
-            appearanceView
+            inkAppearanceView
         }
     }
     
-    // MARK: - 능력치 뷰
-    private var characterStatsView: some View {
-        VStack(spacing: 16) {
+    // MARK: - 수묵화 스타일 능력치 뷰
+    private var inkCharacterStatsView: some View {
+        VStack(spacing: 20) {
             // 기본 능력치
-            VStack(alignment: .leading, spacing: 12) {
-                Text("기본 능력치")
-                    .font(.merchantBody)
-                    .foregroundColor(.treasureGold)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("기본 덕목")
+                    .font(.brushStroke)
+                    .foregroundColor(.brushText)
                 
-                VStack(spacing: 8) {
-                    StatRow(name: "힘", current: gameManager.player.strength, icon: "flame.fill", color: .healthRed)
-                    StatRow(name: "지능", current: gameManager.player.intelligence, icon: "brain.head.profile", color: .manaBlue)
-                    StatRow(name: "매력", current: gameManager.player.charisma, icon: "heart.fill", color: .expGreen)
-                    StatRow(name: "행운", current: gameManager.player.luck, icon: "star.fill", color: .goldYellow)
+                VStack(spacing: 12) {
+                    InkStatRow(title: "무력", value: gameManager.player.strength, icon: "flame.fill")
+                    InkStatRow(title: "지혜", value: gameManager.player.intelligence, icon: "brain.head.profile")
+                    InkStatRow(title: "인덕", value: gameManager.player.charisma, icon: "heart.fill")
+                    InkStatRow(title: "운세", value: gameManager.player.luck, icon: "star.fill")
                 }
             }
             
-            // 거래 기술
-            VStack(alignment: .leading, spacing: 12) {
-                Text("거래 기술")
-                    .font(.merchantBody)
-                    .foregroundColor(.treasureGold)
+            // 거래 기예
+            VStack(alignment: .leading, spacing: 16) {
+                Text("거래 기예")
+                    .font(.brushStroke)
+                    .foregroundColor(.brushText)
                 
-                VStack(spacing: 8) {
-                    StatRow(name: "거래 기술", current: gameManager.player.tradingSkill, icon: "cart.fill", color: .treasureGold)
-                    StatRow(name: "협상 기술", current: gameManager.player.negotiationSkill, icon: "person.2.fill", color: .oceanTeal)
-                    StatRow(name: "감정 기술", current: gameManager.player.appraisalSkill, icon: "eye.fill", color: .seaBlue)
+                VStack(spacing: 12) {
+                    InkStatRow(title: "상술", value: gameManager.player.tradingSkill, icon: "cart.fill")
+                    InkStatRow(title: "언변", value: gameManager.player.negotiationSkill, icon: "person.2.fill")
+                    InkStatRow(title: "감별", value: gameManager.player.appraisalSkill, icon: "eye.fill")
                 }
             }
         }
-        .parchmentCard()
+        .inkCard()
     }
     
-    // MARK: - 스킬 뷰
-    private var characterSkillsView: some View {
-        VStack(spacing: 16) {
-            Text("스킬 시스템 (준비 중)")
-                .font(.merchantBody)
-                .foregroundColor(.mistGray)
+    // MARK: - 수묵화 스타일 스킬 뷰
+    private var inkCharacterSkillsView: some View {
+        VStack(spacing: 20) {
+            Text("무예 수련")
+                .font(.brushStroke)
+                .foregroundColor(.brushText)
             
-            Button("스킬 트리 보기") {
+            Text("곧 다양한 기예를 익힐 수 있습니다")
+                .font(.inkText)
+                .foregroundColor(.fadeText)
+                .multilineTextAlignment(.center)
+            
+            Button("수련서 보기") {
                 showSkillTree = true
             }
-            .buttonStyle(TreasureButtonStyle())
+            .buttonStyle(InkButtonStyle())
         }
-        .parchmentCard()
+        .inkCard()
     }
     
-    // MARK: - 업적 뷰
-    private var achievementsView: some View {
-        VStack(spacing: 16) {
-            // 최근 업적들 (상위 3개)
-            VStack(alignment: .leading, spacing: 12) {
+    // MARK: - 수묵화 스타일 업적 뷰
+    private var inkAchievementsView: some View {
+        VStack(spacing: 20) {
+            // 최근 업적들
+            VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text("최근 업적")
-                        .font(.merchantBody)
-                        .foregroundColor(.treasureGold)
+                    Text("최근 성취")
+                        .font(.brushStroke)
+                        .foregroundColor(.brushText)
                     
                     Spacer()
                     
                     NavigationLink("전체 보기") {
                         AchievementView(achievementManager: AchievementManager())
                     }
-                    .font(.compassSmall)
-                    .foregroundColor(.seaBlue)
+                    .font(.whisperText)
+                    .foregroundColor(.fadeText)
                 }
                 
-                // 샘플 업적들
-                VStack(spacing: 8) {
-                    AchievementMiniCard(
-                        name: "첫 거래",
-                        progress: 1.0,
+                // 샘플 업적들 - 수묵화 스타일
+                VStack(spacing: 12) {
+                    InkAchievementMiniCard(
+                        title: "첫 거래",
+                        description: "첫 번째 거래 완료",
                         isCompleted: true,
-                        category: "거래"
+                        progress: 1,
+                        total: 1
                     )
                     
-                    AchievementMiniCard(
-                        name: "수집가",
-                        progress: 0.7,
+                    InkAchievementMiniCard(
+                        title: "수집가",
+                        description: "다양한 물품 수집",
                         isCompleted: false,
-                        category: "수집"
+                        progress: 7,
+                        total: 10
                     )
                     
-                    AchievementMiniCard(
-                        name: "탐험가",
-                        progress: 1.0,
+                    InkAchievementMiniCard(
+                        title: "탐험가",
+                        description: "여러 지역 탐방",
                         isCompleted: true,
-                        category: "탐험"
+                        progress: 5,
+                        total: 5
                     )
                 }
             }
         }
-        .parchmentCard()
+        .inkCard()
     }
     
-    // MARK: - 외형 뷰
-    private var appearanceView: some View {
-        VStack(spacing: 16) {
-            Text("캐릭터 커스터마이징 (준비 중)")
-                .font(.merchantBody)
-                .foregroundColor(.mistGray)
+    // MARK: - 수묵화 스타일 외형 뷰
+    private var inkAppearanceView: some View {
+        VStack(spacing: 20) {
+            Text("의상 선택")
+                .font(.brushStroke)
+                .foregroundColor(.brushText)
             
-            // TODO: 외형 커스터마이징 구현
-            Text("곧 캐릭터 외형을 변경할 수 있습니다!")
-                .font(.compassSmall)
-                .foregroundColor(.dialogueText)
+            Text("곧 다양한 의상을 선택할 수 있습니다")
+                .font(.inkText)
+                .foregroundColor(.fadeText)
+                .multilineTextAlignment(.center)
+            
+            // 미리보기 영역
+            ZStack {
+                Circle()
+                    .fill(Color.softWhite)
+                    .frame(width: 120, height: 120)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.inkBlack.opacity(0.2), lineWidth: 2)
+                    )
+                
+                Image(systemName: "figure.walk")
+                    .font(.system(size: 60))
+                    .foregroundColor(.brushText.opacity(0.7))
+            }
+            .shadow(color: Color.inkMist.opacity(0.3), radius: 6, x: 0, y: 3)
         }
-        .parchmentCard()
+        .inkCard()
     }
     
     // MARK: - 계산된 속성들
@@ -296,33 +421,127 @@ struct CharacterView: View {
     }
 }
 
-// MARK: - StatRow 컴포넌트
-struct StatRow: View {
-    let name: String
-    let current: Int
+// MARK: - 수묵화 스타일 능력치 행 컴포넌트
+struct InkStatRow: View {
+    let title: String
+    let value: Int
     let icon: String
-    let color: Color
     
     var body: some View {
-        HStack {
-            Image(systemName: icon)
-                .foregroundColor(color)
-                .frame(width: 20)
+        HStack(spacing: 16) {
+            // 아이콘
+            ZStack {
+                Circle()
+                    .fill(Color.inkMist.opacity(0.3))
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(.brushText.opacity(0.7))
+            }
             
-            Text(name)
-                .font(.merchantBody)
-                .foregroundColor(.dialogueText)
-            
-            Spacer()
-            
-            Text("\(current)")
-                .font(.statText)
-                .foregroundColor(color)
-                .frame(minWidth: 30, alignment: .trailing)
+            // 제목과 값
+            HStack {
+                Text(title)
+                    .font(.inkText)
+                    .foregroundColor(.brushText)
+                
+                Spacer()
+                
+                Text("\(value)")
+                    .font(.brushStroke)
+                    .fontWeight(.medium)
+                    .foregroundColor(.brushText)
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.softWhite.opacity(0.5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.inkBlack.opacity(0.1), lineWidth: 1)
+                )
+        )
     }
 }
+
+// MARK: - 수묵화 스타일 미니 업적 카드
+struct InkAchievementMiniCard: View {
+    let title: String
+    let description: String
+    let isCompleted: Bool
+    let progress: Int
+    let total: Int
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // 완료 상태 표시
+            ZStack {
+                Circle()
+                    .fill(isCompleted ? Color.brushText.opacity(0.2) : Color.inkMist.opacity(0.3))
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: isCompleted ? "checkmark.seal.fill" : "hourglass")
+                    .font(.system(size: 16))
+                    .foregroundColor(isCompleted ? .brushText : .fadeText)
+            }
+            
+            VStack(alignment: .leading, spacing: 6) {
+                // 제목
+                Text(title)
+                    .font(.inkText)
+                    .fontWeight(.medium)
+                    .foregroundColor(.brushText)
+                
+                // 설명
+                Text(description)
+                    .font(.whisperText)
+                    .foregroundColor(.fadeText)
+                
+                // 진행률
+                if !isCompleted {
+                    HStack(spacing: 8) {
+                        Text("(\(progress)/\(total))")
+                            .font(.whisperText)
+                            .foregroundColor(.fadeText)
+                        
+                        // 진행률 바
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Color.inkMist.opacity(0.3))
+                                    .frame(height: 4)
+                                
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Color.brushText.opacity(0.6))
+                                    .frame(
+                                        width: geometry.size.width * (Double(progress) / Double(total)),
+                                        height: 4
+                                    )
+                            }
+                        }
+                        .frame(height: 4)
+                    }
+                }
+            }
+            
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.softWhite.opacity(0.3))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.inkBlack.opacity(0.1), lineWidth: 1)
+                )
+        )
+    }
+}
+
 
 // MARK: - Preview
 #Preview {

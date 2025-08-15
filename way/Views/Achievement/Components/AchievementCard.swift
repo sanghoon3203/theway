@@ -41,7 +41,7 @@ struct AchievementCard: View {
             }
             
             // 클레임 버튼 (완료했지만 미수령인 경우에만)
-            if achievement.isCompleted && !achievement.isClaimed {
+            if achievement.isCompleted && !achievement.claimed {
                 Button("보상 수령") {
                     onClaim(achievement)
                 }
@@ -95,7 +95,7 @@ struct AchievementCard: View {
     // MARK: - 업적 상태 배지
     private var achievementStatusBadge: some View {
         Group {
-            if achievement.isCompleted && !achievement.isClaimed {
+            if achievement.isCompleted && !achievement.claimed {
                 Text("수령 대기")
                     .font(.compassSmall)
                     .foregroundColor(.treasureGold)
@@ -105,7 +105,7 @@ struct AchievementCard: View {
                         RoundedRectangle(cornerRadius: 8)
                             .fill(Color.treasureGold.opacity(0.2))
                     )
-            } else if achievement.isCompleted && achievement.isClaimed {
+            } else if achievement.isCompleted && achievement.claimed {
                 Text("완료")
                     .font(.compassSmall)
                     .foregroundColor(.expGreen)
@@ -139,7 +139,7 @@ struct AchievementCard: View {
                 
                 Spacer()
                 
-                Text("\(achievement.currentProgress) / \(achievement.targetValue)")
+                Text("\(achievement.currentProgress) / \(achievement.conditionValue)")
                     .font(.treasureCaption)
                     .foregroundColor(progressColor)
             }
@@ -192,7 +192,7 @@ struct AchievementCard: View {
         case .exploration: return "map.fill"
         case .social: return "person.2.fill"
         case .collection: return "bag.fill"
-        case .combat: return "shield.fill"
+        case .character: return "person.circle.fill"
         }
     }
     
@@ -202,12 +202,12 @@ struct AchievementCard: View {
         case .exploration: return .seaBlue
         case .social: return .expGreen
         case .collection: return .manaBlue
-        case .combat: return .compass
+        case .character: return .compass
         }
     }
     
     private var cardBackground: Color {
-        if achievement.isCompleted && !achievement.isClaimed {
+        if achievement.isCompleted && !achievement.claimed {
             return Color.treasureGold.opacity(0.1)
         } else if achievement.isCompleted {
             return Color.expGreen.opacity(0.1)
@@ -217,7 +217,7 @@ struct AchievementCard: View {
     }
     
     private var cardBorderColor: Color {
-        if achievement.isCompleted && !achievement.isClaimed {
+        if achievement.isCompleted && !achievement.claimed {
             return .treasureGold
         } else if achievement.isCompleted {
             return .expGreen
@@ -279,84 +279,44 @@ struct AchievementCard: View {
     }
 }
 
-// MARK: - ProgressBar 컴포넌트 (재사용 가능)
-struct ProgressBar: View {
-    let current: Double
-    let maximum: Double
-    let color: Color
-    let height: CGFloat
-    let cornerRadius: CGFloat
-    
-    init(current: Double, maximum: Double, color: Color = .expGreen, height: CGFloat = 8, cornerRadius: CGFloat = 4) {
-        self.current = current
-        self.maximum = maximum
-        self.color = color
-        self.height = height
-        self.cornerRadius = cornerRadius
-    }
-    
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Color.gray.opacity(0.3))
-                    .frame(height: height)
-                
-                RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(
-                        LinearGradient(
-                            colors: [color.opacity(0.8), color],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(
-                        width: geometry.size.width * min(current / maximum, 1.0),
-                        height: height
-                    )
-                    .animation(.easeInOut(duration: 0.5), value: current)
-            }
-        }
-        .frame(height: height)
-    }
-}
 
 // MARK: - Preview
 #Preview {
     VStack(spacing: 16) {
         AchievementCard(
-            achievement: Achievement(
-                id: "test1",
-                name: "첫 거래",
-                description: "첫 번째 거래를 완료하세요",
-                category: .trading,
-                conditionType: "trade_count",
-                targetValue: 1,
-                currentProgress: 1,
-                isClaimed: false,
-                rewardType: "exp",
-                rewardValue: "50",
-                iconId: 1,
-                isHidden: false,
-                createdAt: Date()
-            )
+            achievement: {
+                var achievement = Achievement(
+                    id: "test1",
+                    name: "첫 거래",
+                    description: "첫 번째 거래를 완료하세요",
+                    category: .trading,
+                    conditionType: "trade_count",
+                    conditionValue: 1,
+                    rewardType: "exp",
+                    rewardValue: #"{"experience": 50}"#
+                )
+                achievement.currentProgress = 1
+                achievement.isCompleted = true
+                achievement.claimed = false
+                return achievement
+            }()
         ) { _ in }
         
         AchievementCard(
-            achievement: Achievement(
-                id: "test2",
-                name: "수집가",
-                description: "10개의 서로 다른 아이템을 수집하세요",
-                category: .collection,
-                conditionType: "unique_items",
-                targetValue: 10,
-                currentProgress: 7,
-                rewardType: "cosmetic",
-                rewardValue: "collector_badge",
-                iconId: 2,
-                isHidden: false,
-                createdAt: Date()
-            )
+            achievement: {
+                var achievement = Achievement(
+                    id: "test2",
+                    name: "수집가",
+                    description: "10개의 서로 다른 아이템을 수집하세요",
+                    category: .collection,
+                    conditionType: "unique_items",
+                    conditionValue: 10,
+                    rewardType: "cosmetic",
+                    rewardValue: #"{"cosmetic_id": 101}"#
+                )
+                achievement.currentProgress = 7
+                return achievement
+            }()
         ) { _ in }
     }
     .padding()

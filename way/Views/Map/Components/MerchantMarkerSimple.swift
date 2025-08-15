@@ -35,6 +35,8 @@ struct MerchantMarkerSimple: View {
     private func colorForMerchantType(_ type: MerchantType) -> Color {
         switch type {
         case .retail: return .green
+        case .wholesale: return .yellow
+        case .premium: return .red
         case .artisan: return .blue
         case .collector: return .purple
         case .mystic: return .orange

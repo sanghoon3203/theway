@@ -10,227 +10,187 @@ struct AuthenticationView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // 배경 - 바다 그라데이션
-                LinearGradient.oceanWave
+                // 수묵화 배경 - 한지 그라데이션
+                LinearGradient.paperBackground
                     .ignoresSafeArea()
                 
-                // 파도 애니메이션 배경
-                WaveBackground()
-                    .opacity(0.3)
+                // 배경 산 실루엣
+                VStack {
+                    Spacer()
+                    MountainSilhouette()
+                        .frame(height: 150)
+                        .opacity(0.2)
+                }
                 
-                // 메인 컨텐츠
-                VStack(spacing: 0) {
-                    // 상단 로고 및 타이틀 영역
-                    HeaderSection()
-                        .padding(.top, geometry.safeAreaInsets.top + 20)
-                    
-                    Spacer()
-                    
-                    // 인증 카드 영역
-                    VStack(spacing: 20) {
-                        // 탭 선택기 (로그인/회원가입)
-                        AuthTabSelector(isShowingLogin: $isShowingLogin)
+                // 은은한 먹 점 패턴
+                InkDotPattern()
+                    .opacity(0.15)
+                
+                ScrollView {
+                    VStack(spacing: 50) {
+                        // 상단 로고
+                        InkHeaderSection()
+                            .padding(.top, geometry.safeAreaInsets.top + 40)
                         
-                        // 인증 폼 영역
-                        if isShowingLogin {
-                            LoginView()
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .leading).combined(with: .opacity),
-                                    removal: .move(edge: .trailing).combined(with: .opacity)
-                                ))
-                        } else {
-                            RegisterView()
-                                .transition(.asymmetric(
-                                    insertion: .move(edge: .trailing).combined(with: .opacity),
-                                    removal: .move(edge: .leading).combined(with: .opacity)
-                                ))
+                        // 인증 영역
+                        VStack(spacing: 28) {
+                            // 탭 선택기
+                            InkAuthTabSelector(isShowingLogin: $isShowingLogin)
+                            
+                            // 인증 폼
+                            if isShowingLogin {
+                                LoginView()
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .leading).combined(with: .opacity),
+                                        removal: .move(edge: .trailing).combined(with: .opacity)
+                                    ))
+                            } else {
+                                RegisterView()
+                                    .transition(.asymmetric(
+                                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                                        removal: .move(edge: .leading).combined(with: .opacity)
+                                    ))
+                            }
                         }
+                        .inkCard()
+                        .padding(.horizontal, 24)
+                        
+                        // 하단 장식
+                        InkFooterSection()
+                            .padding(.bottom, geometry.safeAreaInsets.bottom + 30)
                     }
-                    .parchmentCard()
-                    .padding(.horizontal, 20)
-                    
-                    Spacer()
-                    
-                    // 하단 장식 요소
-                    FooterSection()
-                        .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
                 }
             }
         }
         .onAppear {
-            withAnimation(.easeInOut(duration: 1.0)) {
+            withAnimation(.easeOut(duration: 1.5)) {
                 isAnimating = true
             }
         }
     }
 }
 
-// MARK: - Header Section
-struct HeaderSection: View {
-    @State private var compassRotation: Double = 0
+// MARK: - 수묵화 Header Section
+struct InkHeaderSection: View {
+    @State private var breathingAnimation = false
     
     var body: some View {
-        VStack(spacing: 16) {
-            // 앱 아이콘 (나침반)
-            ZStack {
-                Circle()
-                    .fill(LinearGradient.treasureShine)
-                    .frame(width: 80, height: 80)
-                    .shadow(color: .treasureGold.opacity(0.5), radius: 10, x: 0, y: 5)
-                
-                Image(systemName: NavigationIcons.compass)
-                    .font(.system(size: 40))
-                    .foregroundColor(.white)
-                    .rotationEffect(.degrees(compassRotation))
-                    .onAppear {
-                        withAnimation(.linear(duration: 20).repeatForever(autoreverses: false)) {
-                            compassRotation = 360
-                        }
-                    }
-            }
+        VStack(spacing: 25) {
+            // 음양 심볼
+            YinYangSymbol(size: 80)
+                .scaleEffect(breathingAnimation ? 1.02 : 1.0)
+                .animation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true), value: breathingAnimation)
             
-            // 앱 제목
-            VStack(spacing: 4) {
-                Text("서울 대무역상")
-                    .font(.pirateTitle)
-                    .foregroundColor(.waveWhite)
-                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)
+            // 메인 타이틀 - 수묵화 스타일
+            VStack(spacing: 15) {
+                // 한자 제목
+                Text("万里")
+                    .font(.chineseTitle)
+                    .foregroundColor(.brushText)
+                    .shadow(color: .inkMist, radius: 2, x: 1, y: 1)
                 
-                Text("Seoul Trading Master")
-                    .font(.compassSmall)
-                    .foregroundColor(.waveWhite.opacity(0.8))
-                    .tracking(2)
+                // 한글 부제목
+                Text("만리")
+                    .font(.brushStroke)
+                    .foregroundColor(.fadeText)
+                    .tracking(10)
+                
+                // 영문 부제목
+                Text("Ten Thousand Li")
+                    .font(.whisperText)
+                    .foregroundColor(.fadeText)
+                    .tracking(4)
             }
+        }
+        .onAppear {
+            breathingAnimation = true
         }
     }
 }
 
-// MARK: - Auth Tab Selector
-struct AuthTabSelector: View {
+// MARK: - 수묵화 Auth Tab Selector
+struct InkAuthTabSelector: View {
     @Binding var isShowingLogin: Bool
     
     var body: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 16) {
             // 로그인 탭
             Button {
-                withAnimation(.easeInOut(duration: 0.3)) {
+                withAnimation(.easeInOut(duration: 0.4)) {
                     isShowingLogin = true
                 }
             } label: {
-                VStack(spacing: 8) {
-                    Image(systemName: NavigationIcons.anchor)
-                        .font(.title2)
-                    
-                    Text("항해 시작")
-                        .font(.merchantBody)
-                }
-                .foregroundColor(isShowingLogin ? .treasureGold : .stormGray)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                Text("로그인")
+                    .font(.brushStroke)
+                    .foregroundColor(isShowingLogin ? .brushText : .fadeText)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(isShowingLogin ? Color.softWhite : Color.clear)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(
+                                        isShowingLogin ? Color.inkBlack.opacity(0.3) : Color.inkBlack.opacity(0.1), 
+                                        lineWidth: isShowingLogin ? 2 : 1
+                                    )
+                            )
+                    )
             }
-            
-            // 구분선
-            Rectangle()
-                .fill(Color.mistGray)
-                .frame(width: 1, height: 40)
             
             // 회원가입 탭
             Button {
-                withAnimation(.easeInOut(duration: 0.3)) {
+                withAnimation(.easeInOut(duration: 0.4)) {
                     isShowingLogin = false
                 }
             } label: {
-                VStack(spacing: 8) {
-                    Image(systemName: NavigationIcons.flag)
-                        .font(.title2)
-                    
-                    Text("함대 결성")
-                        .font(.merchantBody)
-                }
-                .foregroundColor(!isShowingLogin ? .treasureGold : .stormGray)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                Text("회원가입")
+                    .font(.brushStroke)
+                    .foregroundColor(!isShowingLogin ? .brushText : .fadeText)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(!isShowingLogin ? Color.softWhite : Color.clear)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(
+                                        !isShowingLogin ? Color.inkBlack.opacity(0.3) : Color.inkBlack.opacity(0.1), 
+                                        lineWidth: !isShowingLogin ? 2 : 1
+                                    )
+                            )
+                    )
             }
         }
-        .background(
-            // 선택 표시기
+    }
+}
+
+// MARK: - 수묵화 Footer Section
+struct InkFooterSection: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            // 장식 구분선 - 수묵화 스타일
             HStack {
-                if isShowingLogin {
-                    Rectangle()
-                        .fill(Color.treasureGold.opacity(0.2))
-                        .cornerRadius(10)
-                    Spacer()
-                } else {
-                    Spacer()
-                    Rectangle()
-                        .fill(Color.treasureGold.opacity(0.2))
-                        .cornerRadius(10)
-                }
-            }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 4)
-        )
-        .background(
-            RoundedRectangle(cornerRadius: 15)
-                .fill(Color.waveWhite.opacity(0.1))
-        )
-    }
-}
-
-// MARK: - Footer Section
-struct FooterSection: View {
-    var body: some View {
-        VStack(spacing: 12) {
-            // 장식 요소들
-            HStack(spacing: 20) {
-                Image(systemName: NavigationIcons.ship)
-                    .font(.title2)
-                    .foregroundColor(.waveWhite.opacity(0.6))
+                Rectangle()
+                    .fill(Color.inkMist)
+                    .frame(height: 1)
                 
-                Image(systemName: NavigationIcons.treasure)
-                    .font(.title2)
-                    .foregroundColor(.treasureGold.opacity(0.8))
+                Circle()
+                    .fill(Color.inkBlack.opacity(0.4))
+                    .frame(width: 6, height: 6)
                 
-                Image(systemName: NavigationIcons.crown)
-                    .font(.title2)
-                    .foregroundColor(.waveWhite.opacity(0.6))
+                Rectangle()
+                    .fill(Color.inkMist)
+                    .frame(height: 1)
             }
+            .padding(.horizontal, 50)
             
-            Text("새로운 무역의 시대가 시작됩니다")
-                .font(.treasureCaption)
-                .foregroundColor(.waveWhite.opacity(0.7))
+            // 동양적 철학 문구
+            Text("천 리 길도 한 걸음부터\n千里之行 始於足下")
+                .font(.whisperText)
+                .foregroundColor(.fadeText)
                 .multilineTextAlignment(.center)
-        }
-    }
-}
-
-// MARK: - Wave Background Animation
-struct WaveBackground: View {
-    @State private var waveOffset = 0.0
-    
-    var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                let width = geometry.size.width
-                let height = geometry.size.height
-                let midHeight = height * 0.5
-                let wavelength = width / 3
-                
-                path.move(to: CGPoint(x: 0, y: midHeight))
-                
-                for x in stride(from: 0, through: width, by: 1) {
-                    let relativeX = x / wavelength
-                    let sine = sin(relativeX + waveOffset) * 20
-                    let y = midHeight + sine
-                    path.addLine(to: CGPoint(x: x, y: y))
-                }
-            }
-            .stroke(Color.waveWhite.opacity(0.3), lineWidth: 2)
-            .onAppear {
-                withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
-                    waveOffset = .pi * 2
-                }
-            }
+                .lineSpacing(4)
         }
     }
 }

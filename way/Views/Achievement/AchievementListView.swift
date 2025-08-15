@@ -88,8 +88,8 @@ struct AchievementListView: View {
                 ForEach(filteredAchievements) { achievement in
                     AchievementCard(
                         achievement: achievement,
-                        onClaimReward: { achievementId in
-                            viewModel.claimReward(for: achievementId)
+                        onClaim: { achievement in
+                            viewModel.claimReward(for: achievement.id)
                         }
                     )
                 }
@@ -158,7 +158,7 @@ struct CategoryFilterButton: View {
             .padding(.vertical, 8)
             .background(
                 RoundedRectangle(cornerRadius: 20)
-                    .fill(isSelected ? (color ?? .compass) : Color.parchmentBase)
+                    .fill(isSelected ? (color ?? .compass) : Color.parchment)
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
                             .stroke(isSelected ? (color ?? .compass) : Color.dialogueBorder, lineWidth: 1)
@@ -170,145 +170,6 @@ struct CategoryFilterButton: View {
     }
 }
 
-// MARK: - AchievementCard 컴포넌트
-struct AchievementCard: View {
-    let achievement: Achievement
-    let onClaimReward: (String) -> Void
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            // 업적 아이콘
-            achievementIcon
-            
-            // 업적 정보
-            VStack(alignment: .leading, spacing: 8) {
-                // 업적 이름과 카테고리
-                HStack {
-                    Text(achievement.name)
-                        .font(.merchantBody)
-                        .foregroundColor(.dialogueText)
-                    
-                    Spacer()
-                    
-                    Text(achievement.category.displayName)
-                        .font(.compassSmall)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(achievement.category.color.opacity(0.2))
-                        )
-                        .foregroundColor(achievement.category.color)
-                }
-                
-                // 업적 설명
-                Text(achievement.description)
-                    .font(.compassSmall)
-                    .foregroundColor(.mistGray)
-                    .lineLimit(2)
-                
-                // 진행도 바
-                progressBar
-                
-                // 보상 정보
-                if let reward = achievement.rewardInfo {
-                    Text("보상: \(reward.displayText)")
-                        .font(.compassSmall)
-                        .foregroundColor(.treasureGold)
-                }
-            }
-            
-            // 상태 및 액션 버튼
-            actionButton
-        }
-        .padding()
-        .background(
-            RoundedRectangle(cornerRadius: 15)
-                .fill(LinearGradient.parchmentGlow)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 15)
-                        .stroke(achievement.isCompleted ? Color.expGreen : Color.dialogueBorder, lineWidth: 2)
-                )
-        )
-    }
-    
-    private var achievementIcon: some View {
-        ZStack {
-            Circle()
-                .fill(achievement.category.color.opacity(0.2))
-                .frame(width: 50, height: 50)
-            
-            Image(systemName: achievement.category.icon)
-                .font(.system(size: 24))
-                .foregroundColor(achievement.category.color)
-                .opacity(achievement.isCompleted ? 1.0 : 0.6)
-            
-            if achievement.isCompleted {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.expGreen)
-                            .background(Color.white.clipShape(Circle()))
-                    }
-                }
-                .frame(width: 50, height: 50)
-            }
-        }
-    }
-    
-    private var progressBar: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(achievement.progressText)
-                    .font(.compassSmall)
-                    .foregroundColor(.dialogueText)
-                
-                Spacer()
-                
-                Text("\(Int(achievement.progressPercentage * 100))%")
-                    .font(.compassSmall)
-                    .foregroundColor(achievement.isCompleted ? .expGreen : .mistGray)
-            }
-            
-            ProgressView(value: achievement.progressPercentage)
-                .tint(achievement.isCompleted ? .expGreen : .compass)
-                .scaleEffect(y: 2.0)
-        }
-    }
-    
-    private var actionButton: some View {
-        Group {
-            if achievement.canClaim {
-                Button("보상 받기") {
-                    onClaimReward(achievement.id)
-                }
-                .buttonStyle(TreasureButtonStyle())
-                .controlSize(.small)
-            } else if achievement.isCompleted && achievement.claimed {
-                VStack {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.expGreen)
-                    Text("완료")
-                        .font(.compassSmall)
-                        .foregroundColor(.expGreen)
-                }
-            } else {
-                VStack {
-                    Image(systemName: "clock")
-                        .font(.system(size: 20))
-                        .foregroundColor(.mistGray)
-                    Text("진행중")
-                        .font(.compassSmall)
-                        .foregroundColor(.mistGray)
-                }
-            }
-        }
-    }
-}
 
 // MARK: - EmptyAchievementsView 컴포넌트
 struct EmptyAchievementsView: View {

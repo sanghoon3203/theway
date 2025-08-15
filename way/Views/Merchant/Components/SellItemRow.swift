@@ -9,8 +9,9 @@ struct SellItemRow: View {
     @EnvironmentObject var gameManager: GameManager
     
     private var estimatedPrice: Int {
-        // 상인의 가격 계산 메서드 사용
-        merchant.calculatePrice(for: item, player: gameManager.player, isPlayerSelling: true)
+        // 상인의 가격 계산 메서드 사용 (판매 시에는 더 낮은 가격으로)
+        let buyPrice = merchant.getFinalPrice(for: item, player: gameManager.player)
+        return Int(Double(buyPrice) * 0.7) // 구매가의 70%로 판매
     }
     
     private var profit: Int {
@@ -32,7 +33,7 @@ struct SellItemRow: View {
                         .foregroundColor(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color(item.rarity.color))
+                        .background(item.rarity.color.color)
                         .cornerRadius(4)
                 }
                 
