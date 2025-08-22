@@ -30,7 +30,7 @@ struct MainTabView: View {
                             MapView()
                                 .environmentObject(gameManager)
                         case 1:
-                            PriceBoardView()
+                            QuestView()
                                 .environmentObject(gameManager)
                         case 2:
                             InventoryView()
@@ -61,10 +61,10 @@ struct InkTabBar: View {
     
     let tabs = [
         TabItem(icon: "map.fill", title: "지도", tag: 0),
-        TabItem(icon: "chart.line.uptrend.xyaxis", title: "시세", tag: 1),
-        TabItem(icon: "bag.fill", title: "인벤토리", tag: 2),
+        TabItem(icon: "scroll.fill", title: "퀘스트", tag: 1),
+        TabItem(icon: "shippingbox.fill", title: "무역품", tag: 2),
         TabItem(icon: "person.crop.circle", title: "캐릭터", tag: 3),
-        TabItem(icon: "house.fill", title: "거처", tag: 4)
+        TabItem(icon: "lock.fill", title: "비밀상점", tag: 4)
     ]
     
     var body: some View {

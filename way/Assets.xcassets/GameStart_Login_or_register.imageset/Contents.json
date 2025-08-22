@@ -1,0 +1,12 @@
+{
+  "images" : [
+    {
+      "filename" : "GameStart_Login_or_register.png",
+      "idiom" : "universal"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

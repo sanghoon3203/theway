@@ -6,6 +6,13 @@
 	<string>pk.eyJ1IjoicmVhbGlzaG9vbnNhbmciLCJhIjoiY21kY21yczI0MTh3MzJtcHp0NGE3MWk5YSJ9.00GBYK0KsKv-hETMITcWzw</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Your precise location is used to calculate turn-by-turn directions, show your location on the map, and help improve the map.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs location access to show nearby merchants and provide location-based trading features.</string>
+	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
+	<dict>
+		<key>MapboxTemporaryUsage</key>
+		<string>This app needs temporary location access for map functionality.</string>
+	</dict>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>

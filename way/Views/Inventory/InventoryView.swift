@@ -53,7 +53,7 @@ struct InventoryView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
             }
-            .navigationTitle("보관소")
+            .navigationTitle("무역품")
             .navigationBarTitleDisplayMode(.large)
         }
         .sheet(item: $selectedItem) { item in
@@ -77,7 +77,7 @@ struct InkInventoryHeaderCard: View {
         VStack(spacing: 16) {
             // 제목
             HStack {
-                Text("소지품 현황")
+                Text("무역품 현황")
                     .font(.brushStroke)
                     .foregroundColor(.brushText)
                 
@@ -160,11 +160,11 @@ struct InkEmptyInventoryView: View {
             .shadow(color: Color.inkMist.opacity(0.3), radius: 8, x: 0, y: 4)
             
             VStack(spacing: 12) {
-                Text("보관소가 비어있습니다")
+                Text("무역품이 없습니다")
                     .font(.brushStroke)
                     .foregroundColor(.brushText)
                 
-                Text("상인들과 거래하여 물건을 수집해보세요")
+                Text("상인들과 거래하여 무역품을 수집해보세요")
                     .font(.inkText)
                     .foregroundColor(.fadeText)
                     .multilineTextAlignment(.center)
@@ -261,13 +261,15 @@ struct InkInventoryItemCard: View {
     
     private func itemIcon(for category: String) -> String {
         switch category.lowercased() {
-        case "electronics": return "laptopcomputer"
-        case "food": return "leaf.fill"
-        case "clothing": return "tshirt.fill"
-        case "books": return "book.fill"
-        case "tools": return "wrench.fill"
-        case "medicine": return "pills.fill"
-        default: return "cube.box.fill"
+        case "it부품", "전자제품": return "laptopcomputer"
+        case "명품", "luxury": return "crown.fill"
+        case "의류", "clothing": return "tshirt.fill"
+        case "음식", "food": return "leaf.fill"
+        case "도구", "tools": return "wrench.fill"
+        case "의약품", "medicine": return "pills.fill"
+        case "차량", "vehicle": return "car.fill"
+        case "부동산", "property": return "house.fill"
+        default: return "shippingbox.fill"
         }
     }
 }

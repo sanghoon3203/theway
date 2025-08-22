@@ -10,6 +10,7 @@ import MapboxMaps
 
 @main
 struct wayApp: App {
+    @StateObject private var gameManager = GameManager()
     
     init() {
         // 네트워크 설정 출력 (개발 환경에서만)
@@ -20,7 +21,8 @@ struct wayApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()  // 게임 전체를 관리하는 뷰
+            ContentView()
+                .environmentObject(gameManager)
         }
     }
 }

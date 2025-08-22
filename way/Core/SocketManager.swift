@@ -51,11 +51,11 @@ class SocketManager: ObservableObject {
     // MARK: - Configuration
     private let serverURL = NetworkConfiguration.socketURL
     private let socketConfig: SocketIOClientConfiguration = [
-        .log(false), // 프로덕션에서는 false
+        .log(true), // Socket 디버깅용으로 일시적으로 true
         .compress,
         .reconnects(true),
-        .reconnectWait(3),
-        .reconnectWaitMax(10),
+        .reconnectWait(2),
+        .reconnectWaitMax(8),
         .randomizationFactor(0.5),
         .connectParams(["transport": "websocket"]),
         .forceWebsockets(true)

@@ -158,3 +158,326 @@ curl http://localhost:3000/health                   # 헬스체크
 - 코드 변경 시 항상 git status 확인 후 커밋
 - 서버 코드 수정 전 백업 생성 권장
 - 다른 개발자가 쉽게 이해할 수 있도록 명확한 주석과 문서화
+
+---
+
+# 🎮 게임 UI/UX 개선 로드맵 (20년차 게임개발자 모드)
+
+## 개발 철학
+- **직관적 코딩**: 변수명/함수명은 의도가 명확히 드러나도록 작성
+- **모듈화**: 각 기능은 독립적으로 테스트 가능하도록 분리
+- **확장성**: 새로운 지역/상점 추가가 용이한 구조
+- **성능 최적화**: 메모리 누수 방지, 비동기 처리 적극 활용
+
+## 📋 현재 진행 상황 체크리스트
+
+### ✅ 완료된 작업
+- [x] 회원가입/로그인 시스템 정상 작동
+- [x] GameManager environmentObject 의존성 해결
+- [x] Socket 연결 안정화 (127.0.0.1:3001)
+- [x] 메인 맵뷰에서 PlayerStatusBar, QuickInfoPanel 제거
+- [x] 기존 데이터베이스 스키마 분석 완료
+
+### 🔄 진행 중인 작업
+- [ ] 서울 지역별 특화 상점 시스템 설계
+
+### 📅 다음 단계 작업 목록
+
+## 1️⃣ 우선순위 1: 지역별 특화 상점 시스템 (2-3주)
+
+### 기존 DB 활용 방식
+```sql
+-- 기존 merchants 테이블 활용
+-- district: "서촌", "강남", "종로", "홍대", "명동", "이태원"
+-- type: "베이커리", "의료용품", "고물상", "악기상", "화장품", "수입식품"
+-- preferred_items: JSON 형태로 지역 특화 아이템 목록
+
+-- 기존 item_master 테이블 활용  
+-- category/subcategory: 지역별 특화 상품 분류
+-- rarity: 지역별 희귀도 조정
+-- base_price: 지역별 가격 차등화
+```
+
+### 구현 상세 계획
+
+#### A. 서버 사이드 개선
+**파일**: `src/services/GameService.js`
+```javascript
+// 지역별 상점 필터링 함수 (직관적 명명)
+async getDistrictSpecialtyShops(district, playerLevel) {
+  // 명명 규칙: get + 대상 + 조건
+}
+
+// 지역별 아이템 가격 조정 함수
+calculateDistrictPriceModifier(item, district, merchantType) {
+  // 명명 규칙: calculate + 계산대상 + 조건
+}
+```
+
+**파일**: `src/database/seeds/DistrictData.js` (신규 생성)
+```javascript
+// 지역별 상점 데이터 시드
+const DISTRICT_SHOP_CONFIG = {
+  "서촌": {
+    specialties: ["베이커리", "독립서점", "갤러리카페"],
+    priceModifiers: { "식품": 1.2, "문화용품": 1.1 },
+    demographics: "젊은층_문화인"
+  }
+  // ... 다른 지역들
+}
+```
+
+#### B. iOS 클라이언트 개선
+**파일**: `way/Models/District.swift` (신규 생성)
+```swift
+// 직관적 모델 설계
+struct SeoulDistrict: Identifiable, Codable {
+    let id: String
+    let nameKorean: String    // "서촌"
+    let nameEnglish: String   // "Seochon"
+    let specialtyTypes: [ShopSpecialtyType]
+    let culturalTheme: DistrictTheme
+    let priceLevel: PriceLevel  // 1(저렴) ~ 5(고급)
+}
+
+enum ShopSpecialtyType: String, CaseIterable {
+    case bakery = "베이커리"
+    case medicalSupplies = "의료용품"
+    case antiques = "고물상"
+    // 확장 용이성을 위한 enum 설계
+}
+```
+
+**파일**: `way/Views/Map/Components/DistrictAwareMapView.swift` (신규)
+```swift
+// 지역별 특화 마커 표시
+struct DistrictSpecialtyMarker: View {
+    let merchant: Merchant
+    let districtTheme: DistrictTheme
+    
+    var specialtyIcon: String {
+        // 지역+상점타입에 따른 아이콘 자동 선택
+        return IconMapper.getSpecialtyIcon(
+            district: merchant.district,
+            shopType: merchant.type
+        )
+    }
+}
+```
+
+## 2️⃣ 우선순위 2: Mapbox 3D 지도 개선 (3-4주)
+
+### Mapbox Style Specification 활용
+**참고 문서**: https://docs.mapbox.com/style-spec/reference/
+
+#### A. 3D 빌딩 레이어 구현
+**파일**: `way/Views/Map/Styles/SeoulBuildingStyle.swift` (신규)
+```swift
+// 서울 주요 건물 3D 렌더링
+class SeoulBuildingStyleManager {
+    
+    // 직관적 함수명: 동작 + 대상 + 조건
+    func enableBuildingExtrusionForDistrict(_ district: SeoulDistrict) {
+        // 지역별 건물 높이 데이터 적용
+    }
+    
+    func customizeBuildingColorByUsage(_ usage: BuildingUsage) {
+        // 용도별 건물 색상 차별화 (상업/주거/문화시설)
+    }
+}
+```
+
+#### B. 커스텀 마커 시스템
+**파일**: `way/Views/Map/Components/DistrictMarkerFactory.swift` (신규)
+```swift
+// Factory 패턴으로 확장성 확보
+class DistrictMarkerFactory {
+    
+    static func createMarkerForMerchant(
+        _ merchant: Merchant,
+        in district: SeoulDistrict
+    ) -> AnyView {
+        // 지역별 특화 마커 생성
+        // 예: 서촌 베이커리 = 크루아상 모양 마커
+    }
+    
+    // 마커 애니메이션 효과
+    static func animateMarkerAppearance(
+        delay: TimeInterval = 0
+    ) -> Animation {
+        // 부드러운 등장 애니메이션
+    }
+}
+```
+
+## 3️⃣ 우선순위 3: 캐릭터 시스템 활용 (2-3주)
+
+### 기존 DB 테이블 활용
+```sql
+-- character_stats: 스탯 시각화
+-- character_appearance: 아바타 커스터마이징  
+-- character_cosmetics: 착용 아이템
+```
+
+#### A. 스탯 시각화 UI
+**파일**: `way/Views/Character/Components/StatsRadarChart.swift` (신규)
+```swift
+// 직관적인 스탯 표시
+struct PlayerStatsRadarChart: View {
+    let stats: CharacterStats
+    
+    // 명확한 프로퍼티명
+    var negotiationSkillPercentage: Double {
+        return Double(stats.negotiation_skill) / 100.0
+    }
+    
+    var tradingEfficiencyLevel: Int {
+        return stats.trading_skill
+    }
+}
+```
+
+#### B. 착용 아이템 UI
+**파일**: `way/Views/Character/Equipment/EquipmentSlotView.swift` (신규)
+```swift
+// MMO 스타일 장비창
+struct EquipmentInventoryGrid: View {
+    @State private var equippedItems: [EquipmentSlot: CosmeticItem] = [:]
+    
+    // 드래그 앤 드롭 지원
+    func handleItemEquip(item: CosmeticItem, to slot: EquipmentSlot) {
+        // 직관적 함수명으로 의도 명확화
+    }
+}
+
+enum EquipmentSlot: String, CaseIterable {
+    case outfit = "상의"
+    case accessory = "액세서리"  
+    case hairStyle = "헤어스타일"
+    // 확장 가능한 enum 설계
+}
+```
+
+## 4️⃣ 우선순위 4: 상점 UI 혁신 (3-4주)
+
+#### A. 3D 상점 인터페이스
+**파일**: `way/Views/Shop/3D/Shop3DInteriorView.swift` (신규)
+```swift
+// SceneKit 활용 3D 상점 내부
+struct Shop3DInteriorView: UIViewRepresentable {
+    let shopType: ShopSpecialtyType
+    let inventory: [TradeItem]
+    
+    // 상점 타입별 3D 모델 로딩
+    func loadShopModel(for type: ShopSpecialtyType) -> SCNScene? {
+        // 베이커리 = 빵 진열대, 의료용품점 = 약품 진열장
+    }
+}
+```
+
+#### B. 협상 시스템 UI  
+**파일**: `way/Views/Shop/Negotiation/NegotiationCardGame.swift` (신규)
+```swift
+// 포커 스타일 가격 협상
+struct PriceNegotiationGame: View {
+    let merchant: Merchant
+    let item: TradeItem
+    @State private var playerCards: [NegotiationCard] = []
+    @State private var merchantConfidence: Double = 0.5
+    
+    // 스탯 기반 협상 성공률 계산
+    func calculateNegotiationSuccessRate() -> Double {
+        // 캐릭터 스탯 반영한 확률 계산
+    }
+}
+```
+
+## 📊 개발 진행 체크포인트
+
+### Week 1-2: 지역별 상점 데이터 구축
+- [ ] 서울 6개 주요 지역 상점 데이터 입력
+- [ ] 지역별 가격 조정 로직 구현
+- [ ] 상점 타입별 아이콘 에셋 준비
+
+### Week 3-4: Mapbox 3D 맵 구현  
+- [ ] 3D 빌딩 레이어 활성화
+- [ ] 지역별 커스텀 마커 적용
+- [ ] 부드러운 마커 애니메이션 구현
+
+### Week 5-6: 캐릭터 시스템 UI
+- [ ] 스탯 레이더 차트 구현
+- [ ] 착용 아이템 장비창 UI
+- [ ] 캐릭터 아바타 실시간 반영
+
+### Week 7-8: 상점 인터페이스 혁신
+- [ ] 3D 상점 내부 뷰 프로토타입
+- [ ] 협상 카드 게임 기본 로직
+- [ ] 상점별 특화 인터랙션
+
+## 🛠 개발 시 준수사항
+
+### 코딩 컨벤션
+```swift
+// ✅ 좋은 예시 - 직관적 명명
+func calculateOptimalTradingRoute(from source: District, to destination: District) -> TradingRoute?
+
+// ❌ 나쁜 예시 - 불분명한 명명  
+func calc(s: String, d: String) -> Any?
+
+// ✅ 좋은 예시 - 의도가 명확한 변수명
+private var isNegotiationInProgress: Bool = false
+private var currentMerchantMoodLevel: MerchantMood = .neutral
+
+// ❌ 나쁜 예시 - 약어나 불분명한 명명
+private var isNegotiating: Bool = false
+private var mood: Int = 0
+```
+
+### 에러 처리
+```swift
+// 상세한 에러 타입 정의로 디버깅 용이성 확보
+enum ShopInteractionError: LocalizedError {
+    case insufficientFunds(required: Int, available: Int)
+    case inventoryFull(currentCount: Int, maxCapacity: Int)
+    case merchantUnavailable(reason: String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .insufficientFunds(let required, let available):
+            return "자금 부족: 필요 \(required)원, 보유 \(available)원"
+        // ... 다른 케이스들
+        }
+    }
+}
+```
+
+### 성능 최적화 가이드라인
+```swift
+// 메모리 누수 방지
+class ShopViewModel: ObservableObject {
+    private var cancellables = Set<AnyCancellable>()
+    
+    deinit {
+        // 명시적 정리로 메모리 누수 방지
+        cancellables.removeAll()
+    }
+}
+
+// 비동기 작업 최적화
+@MainActor
+func updateShopInventoryDisplay() async {
+    // UI 업데이트는 메인 스레드에서
+}
+```
+
+## 🎯 최종 목표
+- **몰입감**: 실제 서울 거리를 걷는 듯한 경험
+- **개성**: 각 지역별 고유한 매력과 특색
+- **성장감**: 캐릭터 발전이 게임플레이에 실질적 영향  
+- **사회성**: 지역별 상인들과의 관계 형성
+
+## 📝 주의사항
+- 각 기능 구현 후 반드시 단위 테스트 작성
+- UI 변경 시 접근성(Accessibility) 고려
+- 서버 API 변경 시 iOS 클라이언트와 동기화 확인
+- Git 커밋 메시지는 기능 단위로 명확하게 작성

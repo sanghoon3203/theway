@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mapbox/mapbox-common-ios.git",
       "state" : {
-        "revision" : "7911416e1c767ed2432aab3462bb175b556f4a47",
-        "version" : "24.13.4"
+        "revision" : "147fc220aa968a3ab55661cd32358c9371cf909e",
+        "version" : "24.14.2"
       }
     },
     {
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mapbox/mapbox-core-maps-ios.git",
       "state" : {
-        "revision" : "7786b46ef12c3e3e3242eb87e67f908dca5391bc",
-        "version" : "11.13.4"
+        "revision" : "8416632ad50d07fbee16cb3930b7379f8e3f5ecf",
+        "version" : "11.14.2"
       }
     },
     {
@@ -24,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/mapbox/mapbox-maps-ios.git",
       "state" : {
-        "revision" : "ed877b38801a43c70a5e3856e8bbc138b9eeef36",
-        "version" : "11.13.4"
+        "revision" : "ffb33dc0c7f380fc373196a28577b93a478e1711",
+        "version" : "11.14.2"
       }
     },
     {

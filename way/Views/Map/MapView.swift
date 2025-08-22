@@ -19,8 +19,10 @@ struct MapView: View {
         ZStack {
             // 맵박스 지도 - 단순화된 버전
             Map(viewport: $viewport) {
-                // 사용자 위치 표시
+                // 사용자 위치 표시 (I/O 최적화)
                 Puck2D(bearing: showsBearingImage ? .heading : .course)
+                    .showsAccuracyRing(false)
+                    .pulsing(.default)
                 
                 // 상인들 마커 - 직접 나열 방식 (최대 10명)
                 if gameManager.merchants.count > 0 {
@@ -85,25 +87,36 @@ struct MapView: View {
             }
             .mapStyle(.standard)
             .onMapTapGesture { _ in
-                stopTracking()
+                Task { @MainActor in
+                    stopTracking()
+                }
             }
             .ignoresSafeArea()
             
             // UI 오버레이
             VStack {
-                // 상단 플레이어 상태바
-                PlayerStatusBar()
-                    .environmentObject(gameManager)
+                // 상단 플레이어 정보 (등급)
+                HStack {
+                    
+                    PlayerInfoOverlayLisenceInfo()
+                        .environmentObject(gameManager)
+                        .frame(maxWidth: .infinity, alignment:.trailing)
+                }
+                .padding(.top, 10)
+                .padding(.horizontal, 16)
                 
                 Spacer()
                 
-                // 하단 빠른 정보 패널
-                QuickInfoPanel()
-                    .environmentObject(gameManager)
-                
                 // 위치 추적 버튼
                 HStack {
+                    PlayerInfoOverlayMoneyInfo()
+                        .environmentObject(gameManager)
+                        .padding(.leading, 5)
+                        .padding(.bottom, 10)
+
+
                     Spacer()
+
                     LocationTrackingButton(isTracking: $isTracking, viewport: $viewport)
                         .padding(.trailing, 20)
                         .padding(.bottom, 10)
